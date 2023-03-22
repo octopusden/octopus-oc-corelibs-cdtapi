@@ -1,0 +1,16 @@
+version: "3"
+services:
+  cdtapi27:
+    build:
+      context: ./
+      args:
+        PYTHON_VERSION: 2.7
+        DOCKER_REGISTRY_HOST: ${DOCKER_REGISTRY_HOST}
+    image: ${DOCKER_REGISTRY_HOST}/si/corelibs-cdtapi27:${TAG:-master}
+  cdtapi37:
+    build:
+      context: ./
+      args:
+        PYTHON_VERSION: 3.7
+        DOCKER_REGISTRY_HOST: ${DOCKER_REGISTRY_HOST}
+    image: ${DOCKER_REGISTRY_HOST}/si/corelibs-cdtapi37:${TAG:-master}
