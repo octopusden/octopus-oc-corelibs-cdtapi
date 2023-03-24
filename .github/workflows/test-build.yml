@@ -1,0 +1,23 @@
+name: test-build
+run-name: test-build
+on:
+  release:
+    types: [published]
+jobs:
+  compile-cdtapi2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+      - uses: actions/checkout@v3
+      - run: sudo apt install python2
+      - run: curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+      - run: sudo python2 get-pip.py
+      - run: python2 -m pip install setuptools
+      - run: python2 setup.py sdist bdist_wheel
+      - run: python2 -m pip install dist/*.whl && python2 setup.py test
+  compile-cdtapi3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: python3 setup.py sdist bdist_wheel
+      - run: python3 -m pip install dist/*.whl && python3 setup.py test
