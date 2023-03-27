@@ -5,11 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Compile
-        env:
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         uses: actions/checkout@v3
       - run: python3 -m pip install --upgrade twine
       - run: python3 setup.py sdist bdist_wheel
       - run: python3 -m pip install dist/*.whl && python3 setup.py test
       - run: echo
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       - run: export TWINE_USERNAME="__token__" && twine upload dist/*.whl
