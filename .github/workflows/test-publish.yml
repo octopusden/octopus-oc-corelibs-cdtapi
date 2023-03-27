@@ -1,5 +1,7 @@
 name: test-publish
-on: [push]
+on:
+  release:
+    types: [published]
 jobs:
   compile-cdtapi3:
     runs-on: ubuntu-latest
