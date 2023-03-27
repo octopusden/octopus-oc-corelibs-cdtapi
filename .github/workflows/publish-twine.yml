@@ -1,0 +1,14 @@
+name: test-publish
+on: [push]
+jobs:
+  compile-cdtapi3:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Compile
+        uses: actions/checkout@v3
+      - run: python3 -m pip install --upgrade twine
+      - run: python3 setup.py sdist bdist_wheel
+      - run: python3 -m pip install dist/*.whl && python3 setup.py test
+      - name: test-publish
