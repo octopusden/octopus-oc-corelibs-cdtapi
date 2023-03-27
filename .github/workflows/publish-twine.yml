@@ -13,4 +13,4 @@ jobs:
       - shell: bash
         env:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: export TWINE_USERNAME="__token__" && twine upload --verbose dist/*.whl
+        run: export TWINE_USERNAME="__token__" && export TWINE_PASSWORD && twine upload --verbose dist/*.whl
