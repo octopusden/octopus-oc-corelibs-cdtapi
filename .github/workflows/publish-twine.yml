@@ -1,10 +1,8 @@
-name: test-publish
+name: publish-twine
 on: [push]
 jobs:
   compile-cdtapi3:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
     steps:
       - name: Compile
         uses: actions/checkout@v3
