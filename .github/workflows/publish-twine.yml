@@ -10,6 +10,7 @@ jobs:
       - run: python3 setup.py sdist bdist_wheel
       - run: python3 -m pip install dist/*.whl && python3 setup.py test
       - run: echo
+      - shell: bash
         env:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       - run: export TWINE_USERNAME="__token__" && twine upload dist/*.whl
