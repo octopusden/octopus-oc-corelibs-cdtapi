@@ -9,7 +9,7 @@ jobs:
       - run: python3 -m pip install --upgrade twine
       - run: python3 setup.py sdist bdist_wheel
       - run: python3 -m pip install dist/*.whl && python3 setup.py test
-      - run: |
-        export TWINE_USER="__token__"
-        export TWINE_PASSWORD=${{ secrets.PYPI_API_TOKEN }}
-        twine upload dist/*.whl
+      - run: export TWINE_USER="__token__"
+      - run: export TWINE_PASSWORD=${{ secrets.PYPI_API_TOKEN }}
+      - run: env | grep TWI
+      - run: twine upload dist/*.whl
