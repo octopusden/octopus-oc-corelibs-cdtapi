@@ -1,9 +1,12 @@
-name: test-build
-run-name: test-build
+name: Build and deploy
+run-name: build-and-deploy
 on: [workflow_dispatch]
 jobs:
   compile-cdtapi2:
     runs-on: ubuntu-latest
+    environment: Prod
+    permissions:
+      id-token: write
     steps:
       - name: Build
       - uses: actions/checkout@v3
@@ -13,6 +16,10 @@ jobs:
       - run: python2 -m pip install setuptools
       - run: python2 setup.py sdist bdist_wheel
       - run: python2 -m pip install dist/*.whl && python2 setup.py test
+      - name: Publish-v2
+        uses: pypa/gh-action-pypi-publish@release/v1
+	with:
+	  password: ${{ secrets.PYPI_API_TOKEN }}
   compile-cdtapi3:
     runs-on: ubuntu-latest
     steps:
