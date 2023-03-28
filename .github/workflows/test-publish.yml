@@ -1,5 +1,5 @@
 name: test-publish
-on: [workflow_dispatch]
+on: [push]
 jobs:
   compile-cdtapi3:
     runs-on: ubuntu-latest
