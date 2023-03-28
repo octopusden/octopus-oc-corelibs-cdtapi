@@ -3,6 +3,7 @@ on: [push]
 jobs:
   compile-cdtapi3:
     runs-on: ubuntu-latest
+    environment: Prod
     steps:
       - name: Compile
         uses: actions/checkout@v3
