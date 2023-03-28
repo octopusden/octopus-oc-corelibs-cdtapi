@@ -1,8 +1,6 @@
 name: test-build
 run-name: test-build
-on:
-  release:
-    types: [published]
+on: [workflow_dispatch]
 jobs:
   compile-cdtapi2:
     runs-on: ubuntu-latest
