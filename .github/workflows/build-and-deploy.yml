@@ -1,6 +1,6 @@
 name: Build and deploy
 run-name: build-and-deploy
-on: [workflow_dispatch]
+on: [push,workflow_dispatch]
 jobs:
   compile-cdtapi2:
     runs-on: ubuntu-latest
