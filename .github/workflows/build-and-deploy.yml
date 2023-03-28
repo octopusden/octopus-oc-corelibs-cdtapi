@@ -18,9 +18,9 @@ jobs:
       - run: python2 -m pip install dist/*.whl && python2 setup.py test
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
-	with:
-	  password: ${{ secrets.PYPI_API_TOKEN }}
-	  verbose: false
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          verbose: false
   compile-cdtapi3:
     runs-on: ubuntu-latest
     environment: Prod
