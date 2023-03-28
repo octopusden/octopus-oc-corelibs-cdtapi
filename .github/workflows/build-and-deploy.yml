@@ -8,15 +8,20 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Build
+      - name: Checkout
         uses: actions/checkout@v3
       - name: Install python2
         run: sudo apt install python2
-      - run: curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-      - run: sudo python2 get-pip.py
-      - run: python2 -m pip install setuptools
-      - run: python2 setup.py sdist bdist_wheel
-      - run: python2 -m pip install dist/*.whl && python2 setup.py test
+      - name: Download get-pip.py
+        run: curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+      - name: Install pip2
+        run: sudo python2 get-pip.py
+      - name: Install setuptools
+        run: python2 -m pip install setuptools
+      - name: Setup
+        run: python2 setup.py sdist bdist_wheel
+      - name: Install
+        run: python2 -m pip install dist/*.whl && python2 setup.py test
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -28,10 +33,12 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Build
+      - name: Checkout
         uses: actions/checkout@v3
-      - run: python3 setup.py sdist bdist_wheel
-      - run: python3 -m pip install dist/*.whl && python3 setup.py test
+      - name: Setup
+        run: python3 setup.py sdist bdist_wheel
+      - name: Install
+        run: python3 -m pip install dist/*.whl && python3 setup.py test
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
