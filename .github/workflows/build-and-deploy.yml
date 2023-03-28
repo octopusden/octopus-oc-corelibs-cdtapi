@@ -2,7 +2,7 @@ name: Build and deploy
 run-name: build-and-deploy
 on: [push,workflow_dispatch]
 jobs:
-  compile-cdtapi2:
+  build-deploy-cdtapi2:
     runs-on: ubuntu-latest
     environment: Prod
     permissions:
@@ -10,7 +10,8 @@ jobs:
     steps:
       - name: Build
         uses: actions/checkout@v3
-      - run: sudo apt install python2
+        name: Install python2
+        run: sudo apt install python2
       - run: curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
       - run: sudo python2 get-pip.py
       - run: python2 -m pip install setuptools
@@ -21,7 +22,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: false
-  compile-cdtapi3:
+  build-deploy-cdtapi3:
     runs-on: ubuntu-latest
     environment: Prod
     permissions:
