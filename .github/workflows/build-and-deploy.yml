@@ -2,7 +2,7 @@ name: Build and deploy
 run-name: build-and-deploy
 on: [push,workflow_dispatch]
 jobs:
-  build-deploy-cdtapi2:
+  build-deploy-oc_cdtapi2:
     runs-on: ubuntu-latest
     environment: Prod
     permissions:
@@ -27,7 +27,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: false
-  build-deploy-cdtapi3:
+  build-deploy-oc_cdtapi3:
     runs-on: ubuntu-latest
     environment: Prod
     permissions:
