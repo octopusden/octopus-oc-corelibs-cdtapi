@@ -1,12 +1,12 @@
 ﻿kind: "Template"
 apiVersion: "template.openshift.io/v1"
 metadata:
-  name: "cdtapi"
+  name: "oc_cdtapi"
 parameters:
   - name: "LIB_NAME"
     description: "Library name"
     required: true
-    value: "cdtapi"
+    value: "oc_cdtapi"
   - name: "DOCKER_REGISTRY_HOST"
     description: "Registry host url"
     required: true

@@ -2,7 +2,7 @@ import logging
 import os
 import re
 
-from cdtapi import API
+from oc_cdtapi import API
 
 class DmsAPIError(API.HttpAPIError):
     pass

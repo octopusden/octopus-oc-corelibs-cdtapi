@@ -1,4 +1,4 @@
-from cdtapi import NexusAPI
+from oc_cdtapi import NexusAPI
 import posixpath
 from copy import deepcopy
 from xml.etree import ElementTree

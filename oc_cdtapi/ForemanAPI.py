@@ -5,7 +5,7 @@ import posixpath
 import re
 import sys
 
-from cdtapi.API import HttpAPI, HttpAPIError
+from oc_cdtapi.API import HttpAPI, HttpAPIError
 from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta
 

@@ -47,14 +47,14 @@ class HttpAPI(object):
         :param anonymous: ignore username/password provided and use anonymous requests
 
         >>> import os
-        >>> from cdtapi.API import HttpAPI
+        >>> from oc_cdtapi.API import HttpAPI
         >>> def test(port):
         ...     HttpAPI._env_prefix='HTTP'
         ...     os.environ['HTTP_URL'] = 'http://127.0.0.1:' + str(port)
         ...     api = HttpAPI()
         ...     api.get('testinit')
         ...
-        >>> from cdtapi.TestServer import test_wrapper
+        >>> from oc_cdtapi.TestServer import test_wrapper
         >>> test_wrapper(test)
         "GET /testinit HTTP/1.1" 200 -
         >>> os.environ[ 'HTTP_URL' ] = "https://127.0.0.1/";
@@ -175,7 +175,7 @@ class HttpAPI(object):
         ...     api = HttpAPI('http://127.0.0.1:' + str(port))
         ...     api.get('getrequest')
         ...
-        >>> from cdtapi.TestServer import test_wrapper
+        >>> from oc_cdtapi.TestServer import test_wrapper
         >>> test_wrapper(test)
         "GET /getrequest HTTP/1.1" 200 -
 
@@ -209,7 +209,7 @@ class HttpAPI(object):
         ...     api = HttpAPI('http://127.0.0.1:' + str(port))
         ...     api.put('getrequest')
         ...
-        >>> from cdtapi.TestServer import test_wrapper
+        >>> from oc_cdtapi.TestServer import test_wrapper
         >>> test_wrapper(test)
         "PUT /getrequest HTTP/1.1" 200 -
 

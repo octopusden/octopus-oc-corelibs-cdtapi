@@ -4,7 +4,6 @@
 Additional HTTP API for Python Package Index based on DevPI
 """
 
-#from cdtapi.API import HttpAPI;
 from .API import HttpAPI;
 import re;
 import xml.etree.ElementTree as ET;

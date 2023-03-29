@@ -1,5 +1,5 @@
 import unittest
-from cdtapi.JenkinsAPI import Build, QueueItem, BuildStatus, BuildStatusException, JenkinsError, Jenkins
+from oc_cdtapi.JenkinsAPI import Build, QueueItem, BuildStatus, BuildStatusException, JenkinsError, Jenkins
 from requests import Response
 from collections import namedtuple, OrderedDict
 import re, posixpath;

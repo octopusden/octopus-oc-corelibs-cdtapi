@@ -1,5 +1,5 @@
 import logging, unittest
-from cdtapi.DmsGetverAPI import DmsGetverAPI
+from oc_cdtapi.DmsGetverAPI import DmsGetverAPI
 
 
 

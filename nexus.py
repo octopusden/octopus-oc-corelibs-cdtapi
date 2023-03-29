@@ -6,7 +6,7 @@ from __future__ import print_function
 import argparse
 import os 
 import sys
-from cdtapi.NexusAPI import *
+from oc_cdtapi.NexusAPI import *
 
 def get_args():
     """

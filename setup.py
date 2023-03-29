@@ -38,7 +38,7 @@ if version_info.major == 2:
     tests_require.append("mock==2.0.0")
 
 spec = {
-    "name": "cdtapi",
+    "name": "oc_cdtapi",
     "version": dynamic_version('.'.join(list(map(lambda x: str(x), [MAJOR, MINOR, RELEASE])))),
     "license": "Apache2.0",
     "description": "Custom Development python API libraries",

@@ -1,4 +1,4 @@
-# octopus-corelibs-cdtapi
+# octopus-corelibs-oc\_cdtapi
 
 ## Core libraries consist of:
 
