@@ -30,7 +30,7 @@ jobs:
           repository-url: ${{ vars.PYPI_REPO_URL }}
   build-deploy-oc_cdtapi3:
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Test
     permissions:
       id-token: write
     steps:
@@ -45,3 +45,4 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: false
+          repository-url: ${{ vars.PYPI_REPO_URL }}
