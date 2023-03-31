@@ -4,7 +4,7 @@ on: [push,workflow_dispatch]
 jobs:
   build-deploy-oc_cdtapi2:
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Test
     permissions:
       id-token: write
     steps:
