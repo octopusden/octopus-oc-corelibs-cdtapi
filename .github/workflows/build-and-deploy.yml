@@ -27,6 +27,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: true
+          repository-url: ${{ vars.PYPI_REPO_URL }}
   build-deploy-oc_cdtapi3:
     runs-on: ubuntu-latest
     environment: Prod
