@@ -26,7 +26,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          verbose: false
+          verbose: true
   build-deploy-oc_cdtapi3:
     runs-on: ubuntu-latest
     environment: Prod
