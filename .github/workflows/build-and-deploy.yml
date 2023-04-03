@@ -2,9 +2,9 @@ name: Build and deploy
 run-name: build-and-deploy
 on: [push,workflow_dispatch]
 jobs:
-  build-deploy-cdtapi2:
+  build-deploy-oc_cdtapi2:
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Test
     permissions:
       id-token: write
     steps:
@@ -26,10 +26,11 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          verbose: false
-  build-deploy-cdtapi3:
+          verbose: true
+          repository-url: ${{ vars.PYPI_REPO_URL }}
+  build-deploy-oc_cdtapi3:
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Test
     permissions:
       id-token: write
     steps:
@@ -43,4 +44,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          verbose: false
+          verbose: true
+          repository-url: ${{ vars.PYPI_REPO_URL }}

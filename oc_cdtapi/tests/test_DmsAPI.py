@@ -9,7 +9,7 @@ if sys.version_info >= (3, 3):
 else:
     from mock import patch
 
-from cdtapi.DmsAPI import DmsAPI
+from oc_cdtapi.DmsAPI import DmsAPI
 
 import json
 

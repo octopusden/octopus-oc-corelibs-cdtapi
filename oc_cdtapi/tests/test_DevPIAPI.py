@@ -1,5 +1,5 @@
 import unittest
-from cdtapi.DevPIAPI import DevPIAPI;
+from oc_cdtapi.DevPIAPI import DevPIAPI;
 import os;
 import posixpath;
 import xml.etree.ElementTree as ET;

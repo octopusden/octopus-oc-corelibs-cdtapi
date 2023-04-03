@@ -10,7 +10,7 @@ import json
 import unittest
 from datetime import datetime, timedelta
 from collections import namedtuple
-from cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError
+from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError
 
 class _Response(object):
     """

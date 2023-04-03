@@ -5,7 +5,7 @@ import os
 
 from unittest import TestCase
 from nexus import ArtifactTool
-from cdtapi.NexusAPI import parse_gav
+from oc_cdtapi.NexusAPI import parse_gav
 
 
 class MockAPI():

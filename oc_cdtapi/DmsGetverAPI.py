@@ -1,6 +1,6 @@
 import json, logging, os, re, time
 
-from cdtapi import API
+from oc_cdtapi import API
 import posixpath
 
 class DmsGetverAPI (API.HttpAPI):
