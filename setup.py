@@ -42,6 +42,8 @@ spec = {
     "version": dynamic_version('.'.join(list(map(lambda x: str(x), [MAJOR, MINOR, RELEASE])))),
     "license": "Apache2.0",
     "description": "Custom Development python API libraries",
+    "long_description": "",
+    "long_description_content_type": "text/plain",
     "packages": find_packages(),
     "install_requires": install_requires,
     "tests_require": tests_require,
