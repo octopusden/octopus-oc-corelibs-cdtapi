@@ -259,7 +259,12 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug ('URL = [%s]' % url)
 
         try:
-            resp = self.get (url, params=parms)
+            if 'search' in url:
+                logging.debug ('[search] endpoint, assuming POST')
+                resp = self.post (url, json = parms)
+            else:
+                logging.debug ('not a [search] endpoint, assuming GET')
+                resp = self.get (url, params = parms)
         except API.HttpAPIError as e:
             resp = e.resp
 
@@ -299,7 +304,7 @@ class DmsGetverAPI (API.HttpAPI):
             url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution-difference')
             parms = {'initialFilters': client_filter, 'initialVersion': source_version, 'product': distr_type, 'targetFilters': client_filter, 'targetVersion': version}
         else:
-            url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution')
+            url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution', 'search')
             parms = {'filter': client_filter, 'product': distr_type, 'version': version}
         logging.debug ('URL=[%s]' % url)
         return url, parms

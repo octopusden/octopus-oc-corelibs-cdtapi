@@ -27,8 +27,8 @@ def dynamic_version(str_version):
 
 
 MAJOR = 3
-MINOR = 8 
-RELEASE = 2
+MINOR = 9 
+RELEASE = 0
 
 install_requires = ["requests", "mock"]
 tests_require = []
