@@ -107,6 +107,9 @@ class _DmsGetverAPI (DmsGetverAPI):
             elif version == '08.88.88.88':
                 resp.status_code = 500
                 resp.content = None
+        elif url == 'dms-getver/rest/api/1/distribution/search':
+            print ('POST IS FORWARDING TO GET')
+            return self.get ('dms-getver/rest/api/1/distribution', params = json)
         return resp
 
 
