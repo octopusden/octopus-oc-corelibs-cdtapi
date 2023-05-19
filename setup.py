@@ -1,52 +1,23 @@
-from setuptools import setup, find_packages
-import unittest
-from doctest import DocFileSuite
-import os
-from sys import version_info
-from datetime import datetime
+#!/usr/bin/env python3
 
-def dynamic_version(str_version):
-    """
-    Returns full version of a package
-    :param str_version: string, package version to append
-    :return: str_version with appended build_id
-    """
+from setuptools import setup
 
-    str_vfile = 'version.txt'
+__version= "3.8.3"
 
-    if not os.path.exists(str_vfile):
-        fl_out = open(str_vfile, 'w')
-        fl_out.write(datetime.strftime(datetime.now(), "%Y%m%d%H%M%S"))
-        fl_out.close()
-
-    fl_in = open(str_vfile)
-    str_bid = fl_in.read().strip()
-    fl_in.close()
-
-    return '.'.join([str_version, str_bid])
-
-
-MAJOR = 3
-MINOR = 9 
-RELEASE = 0
-
-install_requires = ["requests", "mock"]
+install_requires = ["requests"]
 tests_require = []
 
-if version_info.major == 2:
-    install_requires.append("enum")
-    tests_require.append("mock==2.0.0")
-
 spec = {
-    "name": "oc_cdtapi",
-    "version": dynamic_version('.'.join(list(map(lambda x: str(x), [MAJOR, MINOR, RELEASE])))),
+    "name": "oc-cdtapi",
+    "version": __version,
     "license": "Apache2.0",
     "description": "Custom Development python API libraries",
     "long_description": "",
     "long_description_content_type": "text/plain",
-    "packages": find_packages(),
+    "packages": ["oc_cdtapi"],
     "install_requires": install_requires,
     "tests_require": tests_require,
+    "python_requires": ">=3.6",
     "scripts": [
         "nexus.py"
     ],
