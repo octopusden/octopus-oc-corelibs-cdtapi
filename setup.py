@@ -3,7 +3,7 @@
 from setuptools import setup
 from sys import version_info
 
-__version= "3.9.1"
+__version = "3.9.1"
 install_requires = ["requests"]
 tests_require = []
 
