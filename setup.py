@@ -1,56 +1,35 @@
-from setuptools import setup, find_packages
-import unittest
-from doctest import DocFileSuite
-import os
+#!/usr/bin/env python
+
+from setuptools import setup
 from sys import version_info
-from datetime import datetime
 
-def dynamic_version(str_version):
-    """
-    Returns full version of a package
-    :param str_version: string, package version to append
-    :return: str_version with appended build_id
-    """
-
-    str_vfile = 'version.txt'
-
-    if not os.path.exists(str_vfile):
-        fl_out = open(str_vfile, 'w')
-        fl_out.write(datetime.strftime(datetime.now(), "%Y%m%d%H%M%S"))
-        fl_out.close()
-
-    fl_in = open(str_vfile)
-    str_bid = fl_in.read().strip()
-    fl_in.close()
-
-    return '.'.join([str_version, str_bid])
-
-
-MAJOR = 3
-MINOR = 9 
-RELEASE = 0
-
-install_requires = ["requests", "mock"]
+__version = "3.9.1"
+install_requires = ["requests"]
 tests_require = []
 
-if version_info.major == 2:
+if version_info.major >= 3:
+    python_requires = ">=3.6"
+else:
+    python_requires = ">=2.7,<3"
+    # these modlues comes with 3.6 and later intepreters but not included in 2.7
+    install_requires.append("mock==2.0.0") # needed for tests only but can not be installed with 'pip' if not specified here
     install_requires.append("enum")
-    tests_require.append("mock==2.0.0")
 
 spec = {
-    "name": "oc_cdtapi",
-    "version": dynamic_version('.'.join(list(map(lambda x: str(x), [MAJOR, MINOR, RELEASE])))),
+    "name": "oc-cdtapi",
+    "version": __version,
     "license": "Apache2.0",
     "description": "Custom Development python API libraries",
     "long_description": "",
     "long_description_content_type": "text/plain",
-    "packages": find_packages(),
+    "packages": ["oc_cdtapi"],
     "install_requires": install_requires,
     "tests_require": tests_require,
+    "python_requires": python_requires,
     "scripts": [
         "nexus.py"
     ],
-
 }
+
 
 setup(**spec)
