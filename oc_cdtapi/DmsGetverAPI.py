@@ -134,7 +134,7 @@ class DmsGetverAPI (API.HttpAPI):
             gav = resp.json()
             # we have to raise an exception if anything were not returned
             # it is the cause to rid of 'get' method usage
-            gav_text = ':'.join(list(map(lambda gav[x], [
+            gav_text = ':'.join(list(map(lambda x: gav[x], [
                 'groupId', 'artifactId', 'version', 'packaging'])))
 
             logging.debug('Returning [%s]' % gav_text)
