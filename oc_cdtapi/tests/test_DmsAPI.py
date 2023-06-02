@@ -9,7 +9,7 @@ if sys.version_info >= (3, 3):
 else:
     from mock import patch
 
-from oc_cdtapi.DmsAPI import DmsAPI
+from ..DmsAPI import DmsAPI
 
 import json
 
@@ -98,9 +98,20 @@ class TestDmsAPI(unittest.TestCase):
 #        data = da.ping_dms()
 #        self.assertRegexpMatches(data, '.+links+')
 #
-    @patch.dict(os.environ, {"DMS_URL": "file://dev/null/","DMS_TOKEN": "some-hashed-value", "DMS_CRS_URL": "file://dev/null/"})
+    @patch.dict(os.environ, {
+        "DMS_URL": "file://dev/null/","DMS_TOKEN": "some-hashed-value", "DMS_CRS_URL": "file://dev/null/crs"})
     def setUp(self):
         self.dms_api = _DmsAPI()
+
+    def test_re(self):
+        self.assertEqual("file://dev/null/dms-service/rest/api/test", self.dms_api.re("test"))
+        self.assertEqual("file://dev/null/dms-service/rest/api/test/test", self.dms_api.re("test/test"))
+        self.assertEqual("file://dev/null/dms-service/rest/api/test/test", self.dms_api.re(["test", "test"]))
+
+    def test_crs_re(self):
+        self.assertEqual("file://dev/null/crs/rest/api/test", self.dms_api.crs_re("test"))
+        self.assertEqual("file://dev/null/crs/rest/api/test/test", self.dms_api.crs_re("test/test"))
+        self.assertEqual("file://dev/null/crs/rest/api/test/test", self.dms_api.crs_re(["test", "test"]))
 
     def test_get_components(self):
         test_ok = False

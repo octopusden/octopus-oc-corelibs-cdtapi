@@ -12,12 +12,12 @@ class DmsGetverAPI (API.HttpAPI):
     # prefix for credentials environment variables used by HttpAPI
     _env_prefix = 'DMS'
 
-    def __init__(self, *args, **argp):
+    def __init__(self, *args, **argv):
         logging.debug('Reached __init__')
         logging.debug('Calling base class constructor for availability of HttpAPI methods')
 
         # TODO: re-factor when Python2 support will be deprecated
-        super(DmsGetverAPI, self).__init__(*args, **argp)
+        super(DmsGetverAPI, self).__init__(*args, **argv)
 
         # delivery states in process
         self.waiting_states = ['INITIATED', 'PROCESSING', 'QUEUED']
