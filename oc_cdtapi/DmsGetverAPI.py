@@ -366,7 +366,7 @@ class DmsGetverAPI (API.HttpAPI):
                      'product': distr_type, 'targetFilters': client_filter, 'targetVersion': version}
         else:
             url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution', 'search')
-            parms = {'filter': client_filter,'product': distr_type, 'version': version}
+            parms = {'filter': client_filter, 'product': distr_type, 'version': version}
 
         logging.debug('URL=[%s]' % url)
 
