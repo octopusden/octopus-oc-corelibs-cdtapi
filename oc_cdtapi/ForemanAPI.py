@@ -63,10 +63,13 @@ class ForemanAPI(HttpAPI):
         response = self.get('environments', params=params).json()
         results = response.get('results')
         for result in results:
-            if result.get('name') == env_name:
-                env_id = result.get('id')
-                logging.debug('Found environment [%s]' % env_id)
-                return env_id
+            if result.get('name') != env_name:
+                continue
+
+            env_id = result.get('id')
+            logging.debug('Found environment [%s]' % env_id)
+            return env_id
+
         logging.error('Could not find environment for [%s], returning None' % env_name)
         return None
 
@@ -129,11 +132,10 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached get_usergroup_id_v1')
         if re.search("\s", group_name):
             group_name = "%22{}%22".format(re.sub("\s", "%20", group_name))
-        try:
-            params = {'search': 'name=%s' % group_name}
-            response = self.get('usergroups', params=params)
-        except ForemanAPIError as err:
-            raise (err)
+
+        # removed catching error since it is raised again
+        params = {'search': 'name=%s' % group_name}
+        response = self.get('usergroups', params=params)
 
         data = response.json()
 
@@ -169,6 +171,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('hostname = [%s]' % hostname)
         logging.debug('cores = [%s]' % cores)
         logging.debug('memory = [%s]' % memory)
+
         if self.apiversion == 1:
             logging.debug('Passing to create_host_v1')
             self.create_host_v1(hostname, cores, memory, disk, owner_id,
@@ -183,7 +186,8 @@ class ForemanAPI(HttpAPI):
                        deploy_on, custom_json):
         """
         Creates a host using the default parameters or the ones from an external json
-        note that create_vm in engine actually sends db_task instead of hostname and custom_json, other parms are ignored
+        note that create_vm in engine actually sends db_task instead of hostname and custom_json, 
+        other parms are ignored
         """
         logging.debug('Reached create_host_v1')
         logging.debug('hostname = [%s]' % hostname)
@@ -305,7 +309,8 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached get_architecture_id')
         logging.debug('arch_name = [%s]')
         if self.apiversion == 1:
-            logging.error('Not supported in v1, returning None')
+            # message appneded since different logging level on above and here
+            logging.error('Get_Architecture_ID is not supported in v1, returning None')
             return None
         elif self.apiversion == 2:
             logging.debug('Passing to get_architecture_id_v2')
@@ -319,14 +324,18 @@ class ForemanAPI(HttpAPI):
         logging.debug('arch_name = [%s]' % arch_name)
         params = {'search': 'name=%s' % arch_name}
         response = self.get('architectures', params=params).json()
-        logging.debug('Received response:')
+        logging.debug('Received response: %s')
         logging.debug(response)
         results = response.get('results')
+
         for result in results:
-            if result.get('name') == arch_name:
-                arch_id = result.get('id')
-                logging.debug('Found architecture, id = [%s]' % id)
-                return arch_id
+            if result.get('name') != arch_name:
+                continue
+
+            arch_id = result.get('id')
+            logging.debug('Found architecture, id = [%s]' % id)
+            return arch_id
+
         logging.error('No architecture found, returning None')
         return None
 
@@ -335,6 +344,7 @@ class ForemanAPI(HttpAPI):
         wrapper for api v1/v2
         """
         logging.debug('Reached get_domain_id')
+
         if self.apiversion == 1:
             logging.error('Not supported in v1, returning None')
             return None
@@ -355,9 +365,11 @@ class ForemanAPI(HttpAPI):
         logging.debug('Searching domain [%s]' % domain)
         logging.debug('Domains list:')
         logging.debug(domains)
+
         for d in domains:
             if d.get('name') == domain:
                 return d.get('id')
+
         logging.error('Cannot find domain for host [%s]' % hostname)
         return None
 
@@ -394,7 +406,7 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_ptable_id')
         if self.apiversion == 1:
-            logging.error('Not supported in v1, returning None')
+            logging.error('Get_Ptable_Id is not supported in v1, returning None')
             return None
         elif self.apiversion == 2:
             logging.debug('Passing to get_ptable_id_v2')
@@ -412,10 +424,13 @@ class ForemanAPI(HttpAPI):
         logging.debug(response)
         results = response.get('results')
         for result in results:
-            if result.get('name') == ptable_name:
-                ptable_id = result.get('id')
-                logging.debug('Found ptable id = [%s]' % ptable_id)
-                return ptable_id
+            if result.get('name') != ptable_name:
+                continue
+
+            ptable_id = result.get('id')
+            logging.debug('Found ptable id = [%s]' % ptable_id)
+            return ptable_id
+
         logging.error('No ptable found, returning None')
         return None
 
@@ -506,6 +521,7 @@ class ForemanAPI(HttpAPI):
         wrapper for api v1/v2
         """
         logging.debug('Reached smart_class_info')
+
         if self.apiversion == 1:
             logging.debug('Passing to smart_class_info_v1')
             return self.smart_class_info_v1(scid)
@@ -546,8 +562,8 @@ class ForemanAPI(HttpAPI):
         Overrides smart class parameters
         """
         logging.debug('Reached override_smart_class_v1')
-        request = self.post(posixpath.join("smart_class_parameters", str(
-            scid), "override_values"), headers=self.headers, data=params)
+        request = self.post(posixpath.join("smart_class_parameters", str(scid),
+            "override_values"), headers=self.headers, data=params)
 
     def override_smart_class_v2(self, scid, params):
         """
@@ -706,8 +722,10 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached host_power_v1')
         actions = ["start", "stop"]
+
         if action not in actions:
             raise ForemanAPIError("500 - Incorrect power action was provided")
+
         params = json.dumps({"power_action": action})
         request = self.put(posixpath.join("hosts", hostname, "power"), headers=self.headers, data=params)
 
@@ -772,9 +790,13 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_hostgroup_id_v1')
         hostgroups = self.get("hostgroups", headers=self.headers).json()["results"]
-        for hostgroup in hostgroups:
-            if hostgroup["name"] == hostgroup_name:
-                return hostgroup.get('id')
+        hostgroups = list(filter(lambda x: x.get("name")==hostgroup_name, hostgroups))
+
+        if not hostgroups:
+            logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
+            return None
+
+        return hostgroups.pop().get('id')
 
     def get_hostgroup_id_v2(self, hostgroup_name):
         """
@@ -852,10 +874,13 @@ class ForemanAPI(HttpAPI):
         logging.debug(response)
         results = response.get('results')
         for result in results:
-            if result.get('description') == os_name:
-                os_id = result.get('id')
-                logging.debug('Found os, id = [%s]' % os_id)
-                return os_id
+            if result.get('description') != os_name:
+                continue
+
+            os_id = result.get('id')
+            logging.debug('Found os, id = [%s]' % os_id)
+            return os_id
+
         logging.error('OS not found, returning None')
         return None
 
@@ -881,10 +906,7 @@ class ForemanAPI(HttpAPI):
         pl = {}
         pl['host'] = {}
         pl['host']['expired_on'] = expiry
-        try:
-            self.update_host(hostname, pl)
-        except ForemanAPIError as err:
-            raise (err)
+        self.update_host(hostname, pl)
 
     def set_host_expiry_v2(self, hostname, expiry):
         """
@@ -955,8 +977,9 @@ class ForemanAPI(HttpAPI):
         :return: int
         """
         logging.debug('Reached get_flavor_id_v1')
-        flavors_list = self.get(posixpath.join("compute_resources", str(
-            compute_resource_id), "available_flavors")).json()["results"]
+        flavors_list = self.get(posixpath.join("compute_resources", str(compute_resource_id),
+            "available_flavors")).json()["results"]
+
         try:
             flavor_id = next(flavor["id"] for flavor in flavors_list if flavor["name"] == flavor_name)
             return flavor_id
@@ -992,6 +1015,7 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_tenant_id_v1')
         compute_resource_info = self.get(posixpath.join("compute_resources", str(compute_resource_id))).json()
+
         try:
             tenant_id = compute_resource_info["compute_attributes"][0]["attributes"]["tenant_id"]
             return tenant_id
