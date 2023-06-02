@@ -33,13 +33,9 @@ class ForemanAPI(HttpAPI):
         location_id = 5
         hostgroup = 11
         deploy_on = 1
-
+        self.apiversion = int(os.getenv('FOREMAN_API_VERSION', "1") or "1")
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
 
-        if os.environ.get('FOREMAN_API_VERSION'):
-            self.apiversion = int(os.environ.get('FOREMAN_API_VERSION'))
-        else:
-            self.apiversion = 1
 
     def re(self, req):
         return posixpath.join(self.root, "api", req)
