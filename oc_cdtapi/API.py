@@ -10,10 +10,8 @@ import sys
 
 if sys.version_info.major == 2:
     strtype = basestring
-    import urlparse
 elif sys.version_info.major == 3:
     strtype = str
-    import urllib.parse as urlparse
 
 
 class HttpAPIError(Exception):
@@ -83,19 +81,13 @@ class HttpAPI(object):
         if not root:
             raise ValueError('Server URL for service [%s] not set' % self._env_prefix)
 
-        # check we have correct schema
-        _scheme = urlparse.urlparse(root).scheme
-
-        if not _scheme.startswith("http"):
-            raise ValueError('URL scheme is not supported for "%s"' % root)
-
         self.root = root
         self.web = requests.Session()
 
         if user and not anonymous:
             self.web.auth = (user, auth)
 
-        if _scheme == "https":
+        if self.root.startswith("https:"):
             # ignore self-signed certificates warning
             self.web.verify = False
 
