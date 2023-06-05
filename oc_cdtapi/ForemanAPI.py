@@ -790,11 +790,13 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_hostgroup_id_v1')
         hostgroups = self.get("hostgroups", headers=self.headers).json()["results"]
-        hostgroups = list(filter(lambda x: x.get("name")==hostgroup_name, hostgroups))
 
-        if not hostgroups:
-            logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
-            return None
+        for hostgroup in hostgroups:
+            if hostgroup.get("name") == hostgroup_name:
+                return hostgroup.get ('id')
+        
+        logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
+        return None
 
         return hostgroups.pop().get('id')
 
