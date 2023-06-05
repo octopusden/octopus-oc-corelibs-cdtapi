@@ -798,8 +798,6 @@ class ForemanAPI(HttpAPI):
         logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
         return None
 
-        return hostgroups.pop().get('id')
-
     def get_hostgroup_id_v2(self, hostgroup_name):
         """
         Returns id of the required hostgroup
