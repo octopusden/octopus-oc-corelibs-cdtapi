@@ -735,8 +735,8 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached host_power_v2')
         logging.debug('Passing to host_power_v1')
-        logging.debug('host = [%s]' % host)
-        logging.debug('action = [%s]' % host)
+        logging.debug('host = [%s]' % hostname)
+        logging.debug('action = [%s]' % action)
         self.host_power_v1(hostname, action)
 
     def get_report(self, id):
