@@ -177,10 +177,8 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('Reached get_dms_log_url')
         logging.debug('Request for url for [%s] distr [%s]' % (distr_option, distr_id))
 
-        if distr_option == 'full':
-            url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution', 'id:%s' % distr_id, 'log')
-        else:
-            url = posixpath.join('dms-getver', 'rest', 'api', 'distribution-difference', 'id:%s' % distr_id, 'log')
+        url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution%s' % (
+            "-difference" if distr_option != "full" else ""), 'id:%s' % distr_id, 'log')
 
         logging.debug('url for log request: [%s]' % url)
 
