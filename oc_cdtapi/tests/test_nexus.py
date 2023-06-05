@@ -5,7 +5,7 @@ import os
 
 from unittest import TestCase
 from nexus import ArtifactTool
-from oc_cdtapi.NexusAPI import parse_gav
+from ..NexusAPI import parse_gav
 
 
 class MockAPI():
@@ -57,7 +57,7 @@ class MockAPI():
 
     def remove(self, gav, repo=None):
         if not repo:
-            raise SystemExit(1)
+            raise ValueError("Empty repo")
 
         if sys.version_info.major >= 3:
             return "'%s' has been deleted" % gav
@@ -77,11 +77,30 @@ class ArtifactToolTestSuite(TestCase):
     def tearDown(self):
         self.tempfile.close()
 
+        # delete possible garbage if downloading is tested
+        for _t in os.listdir(os.getcwd()):
+
+            if os.path.splitext(_t)[-1].lower() not in ['.zip', '.jar']:
+                continue
+
+            _t = os.path.join(os.getcwd(), _t)
+
+            if os.path.isdir(_t):
+                continue
+
+            os.remove(_t)
+
     def test_no_gav_provided(self):
         with self.assertRaises(ValueError):
             self.conn.download_artifact(None)
+
+        with self.assertRaises(ValueError):
             self.conn.delete_artifact(None)
+
+        with self.assertRaises(ValueError):
             self.conn.upload_artifact(None)
+
+        with self.assertRaises(ValueError):
             self.conn.get_info(None)
 
     def test_get_info_multiple_gavs(self):
@@ -142,10 +161,8 @@ class ArtifactToolTestSuite(TestCase):
             _check_mthd(self.cout.getvalue(), "Downloaded: '%s' ==> '%s'" % (_art, _file))
 
     def test_delete_artifact_no_upload_repo(self):
-        with self.assertRaises(SystemExit) as ec: 
+        with self.assertRaises(ValueError): 
             self.conn.delete_artifact(["GG:AA:VV", "GG1:AA1:VV1"])
-        exit = ec.exception
-        self.assertEqual(exit.code, 1)
 
     def test_delete_artifact_multiple_gavs(self):
         self.conn.delete_artifact(["GG:AA:VV", "GG1:AA1:VV1"], "test")

@@ -246,8 +246,7 @@ class NexusAPI(HttpAPI):
         :param repo: repo
         :type repo: str
         """
-        # here is nice place to use 'urllib.urljoin'
-        # but implemented ugly via 'posixpath' to get rid of extra dependencies
+        #urllib.urlparse.urljoin is not suitable for us since it joins only host part + relative part
         if not gav:
             raise ValueError("GAV is mandatory")
 

@@ -1,8 +1,8 @@
 import unittest
 import doctest
-import oc_cdtapi.API
+from .. import API
 
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite(oc_cdtapi.API))
+    tests.addTests(doctest.DocTestSuite(API))
     return tests
 
