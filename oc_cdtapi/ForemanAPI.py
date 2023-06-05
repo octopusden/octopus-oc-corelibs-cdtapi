@@ -156,7 +156,7 @@ class ForemanAPI(HttpAPI):
 
     def _set_expiration(self):
         """
-        A private method which sets the default expiration date (1 year from the current date)
+        A private method which sets the default expiration date (3 months from the current date)
         """
         logging.debug('Reached _set_expiration')
         return str((datetime.now() + timedelta(days=90)).strftime('%d/%m/%Y'))
