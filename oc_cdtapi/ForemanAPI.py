@@ -33,12 +33,14 @@ class ForemanAPI(HttpAPI):
         location_id = 5
         hostgroup = 11
         deploy_on = 1
-        self.apiversion = int(os.getenv('FOREMAN_API_VERSION', "1") or "1")
+        self.apiversion = int(os.getenv("FOREMAN_API_VERSION", "1") or "1")
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
 
-
     def re(self, req):
-        return posixpath.join(self.root, "api", req)
+        if not req.startswith("foreman_puppet"):
+            return posixpath.join(self.root, "api", req)
+        else:
+            return posixpath.join(self.root, req)
 
     def get_environment(self, env_name):
         """
@@ -498,7 +500,7 @@ class ForemanAPI(HttpAPI):
             return self.puppet_class_info_v1(classname)
         elif self.apiversion == 2:
             logging.debug('Passing to puppet_class_info_v2')
-            return self.puppet_class_info_v1(classname)
+            return self.puppet_class_info_v2(classname)
 
     def puppet_class_info_v1(self, classname):
         """
@@ -513,8 +515,8 @@ class ForemanAPI(HttpAPI):
         Returns puppet class info
         """
         logging.debug('Reached puppet_class_info_v2')
-        logging.debug('Passing to puppet_class_info_v1')
-        return self.puppet_class_info_v1(classname)
+        response = self.get(posixpath.join("foreman_puppet", "api", "puppetclasses", classname), headers=self.headers)
+        return response.json()
 
     def smart_class_info(self, scid):
         """
@@ -598,8 +600,7 @@ class ForemanAPI(HttpAPI):
         Returns info about all hostgroup's puppetclasses
         """
         logging.debug('Reached get_hostgroup_puppetclasses_v2')
-        params = {'hostgroup_id': str(hostgroup_id)}
-        response = self.get('puppetclasses', params=params)
+        response = self.get(posixpath.join('foreman_puppet', 'api', 'hostgroups', str(hostgroup_id), 'puppetclasses'))
         return response.json()
 
     def add_puppet_class_to_host(self, hostname, params):
@@ -626,8 +627,8 @@ class ForemanAPI(HttpAPI):
         Adds the required puppet class to the host
         """
         logging.debug('Reached add_puppet_class_to_host_v2')
-        logging.debug('Passing to add_puppet_class_to_host_v1')
-        self.add_puppet_class_to_host_v1(hostname, params)
+        logging.debug('Params to be sent: %s' % params)
+        response = self.post(posixpath.join('foreman_puppet', 'api', 'hosts', hostname, 'puppetclass_ids'), headers=self.headers, data=params)
 
     def get_subnets(self):
         """
