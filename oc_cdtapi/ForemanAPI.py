@@ -296,7 +296,7 @@ class ForemanAPI(HttpAPI):
             default_params['hostgroup_id'] = hostgroup
 
         if not default_params.get('environment_id'):
-            env_id = self.get_environment('development')
+            env_id = self.get_environment('production')
             logging.debug('environment_id is not set, setting default [%s]' % env_id)
             default_params['environment_id'] = env_id
 
