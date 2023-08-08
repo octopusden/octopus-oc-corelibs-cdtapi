@@ -68,6 +68,7 @@ class _ForemanAPI(ForemanAPI):
         
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
         self.apiversion = 1
+        self.foreman_version = None
 
     def _read_url(self,url):
         """
@@ -77,6 +78,8 @@ class _ForemanAPI(ForemanAPI):
             return '{"name": "test_stand", "uuid": "50391e80-afde-c4a5-c562-e5af02e5e449"}'
         elif re.match('.+\/hosts/test2$',url):
             return '{"name": "test_stand_2"}'
+        elif re.match('.+\/status', url):
+            return '{"result":"ok","status":200,"version":"2.5.4","api_version":2}'
         elif re.match('.+\/puppetclasses/test_class', url):
             return '{"id": 101}'
         elif re.match('.+\/smart_class_parameters/1111', url):
@@ -148,6 +151,14 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_host_info_unknown_host(self):
         info = self.api.get_host_info("test1")
         self.assertFalse(isinstance(info, dict))
+
+    def test_foreman_version(self):
+        foreman_version = self.api.get_foreman_version()
+        self.assertEqual(foreman_version, "2.5.4")
+
+    def test_foreman_version_major(self):
+        version = self.api.get_foreman_version_major()
+        self.assertEqual(version, 2)
 
     def test_puppet_class_info(self):
         info = self.api.puppet_class_info("test_class")

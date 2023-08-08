@@ -35,6 +35,22 @@ class ForemanAPI(HttpAPI):
         deploy_on = 1
         self.apiversion = int(os.getenv("FOREMAN_API_VERSION", "1") or "1")
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
+        self.foreman_version = None
+
+    def get_foreman_version(self):
+        """
+        lazy init foreman_version
+        """
+        logging.debug('Reached get_foreman_version')
+        if self.foreman_version is None:
+            response = self.get("status").json()
+            self.foreman_version = response.get("version")
+            logging.debug("version: [%s]".format(self.foreman_version))
+        return self.foreman_version
+
+    def get_foreman_version_major(self):
+        version = self.get_foreman_version()
+        return int(version.split('.')[0])
 
     def re(self, req):
         if not req.startswith("foreman_puppet"):
@@ -499,8 +515,12 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to puppet_class_info_v1')
             return self.puppet_class_info_v1(classname)
         elif self.apiversion == 2:
-            logging.debug('Passing to puppet_class_info_v2')
-            return self.puppet_class_info_v2(classname)
+            if self.get_foreman_version_major() == 2:
+                logging.debug('Passing to puppet_class_info_v1')
+                return self.puppet_class_info_v1(classname)
+            else:
+                logging.debug('Passing to puppet_class_info_v2')
+                return self.puppet_class_info_v2(classname)
 
     def puppet_class_info_v1(self, classname):
         """
@@ -584,8 +604,12 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to get_hostgroup_puppetclasses_v1')
             return self.get_hostgroup_puppetclasses_v1(hostgroup_id)
         elif self.apiversion == 2:
-            logging.debug('Passing to get_hostgroup_puppetclasses_v2')
-            return self.get_hostgroup_puppetclasses_v2(hostgroup_id)
+            if self.get_foreman_version_major() == 2:
+                logging.debug('Passing to get_hostgroup_puppetclasses_v1')
+                return self.get_hostgroup_puppetclasses_v1(hostgroup_id)
+            else:
+                logging.debug('Passing to get_hostgroup_puppetclasses_v2')
+                return self.get_hostgroup_puppetclasses_v2(hostgroup_id)
 
     def get_hostgroup_puppetclasses_v1(self, hostgroup_id):
         """
@@ -612,8 +636,12 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to add_puppet_class_to_host_v1')
             self.add_puppet_class_to_host_v1(hostname, params)
         if self.apiversion == 2:
-            logging.debug('Passing to add_puppet_class_to_host_v2')
-            self.add_puppet_class_to_host_v2(hostname, params)
+            if self.get_foreman_version_major() == 2:
+                logging.debug('Passing to add_puppet_class_to_host_v1')
+                self.add_puppet_class_to_host_v1(hostname, params)
+            else:
+                logging.debug('Passing to add_puppet_class_to_host_v2')
+                self.add_puppet_class_to_host_v2(hostname, params)
 
     def add_puppet_class_to_host_v1(self, hostname, params):
         """
