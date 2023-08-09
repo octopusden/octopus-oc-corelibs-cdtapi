@@ -8,6 +8,7 @@ import sys
 from oc_cdtapi.API import HttpAPI, HttpAPIError
 from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta
+from packaging import version
 
 class ForemanAPIError(HttpAPIError):
     pass
@@ -33,9 +34,20 @@ class ForemanAPI(HttpAPI):
         location_id = 5
         hostgroup = 11
         deploy_on = 1
-        self.apiversion = int(os.getenv("FOREMAN_API_VERSION", "1") or "1")
+        self.apiversion = self._set_foreman_api_version("1")
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
         self.foreman_version = None
+
+    def _set_foreman_api_version(self, default):
+        return int(os.getenv("FOREMAN_API_VERSION", default) or default)
+
+    def set_foreman_versions(self):
+        logging.debug('Reached set_foreman_versions')
+        response = self.get("status").json()
+        self.foreman_version = response.get("version")
+        logging.debug('version = [%s]' % self.foreman_version)
+        self.apiversion = self._set_foreman_api_version(response.get("api_version"))
+        logging.debug('api_version = [%s]' % self.apiversion)
 
     def get_foreman_version(self):
         """
@@ -43,14 +55,12 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_foreman_version')
         if self.foreman_version is None:
-            response = self.get("status").json()
-            self.foreman_version = response.get("version")
-            logging.debug("version: [%s]".format(self.foreman_version))
+            self.set_foreman_versions()
         return self.foreman_version
 
     def get_foreman_version_major(self):
-        version = self.get_foreman_version()
-        return int(version.split('.')[0])
+        foreman_version = self.get_foreman_version()
+        return version.parse(foreman_version).major
 
     def re(self, req):
         if not req.startswith("foreman_puppet"):

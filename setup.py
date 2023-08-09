@@ -4,7 +4,10 @@ from setuptools import setup
 from sys import version_info
 
 __version = "3.9.7"
-install_requires = ["requests"]
+install_requires = [
+    "requests",
+    "packaging"
+]
 tests_require = []
 
 if version_info.major < 3:

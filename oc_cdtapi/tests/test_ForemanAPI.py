@@ -157,7 +157,9 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(foreman_version, "2.5.4")
 
     def test_foreman_version_major(self):
+        self.assertEqual(self.api.apiversion, 1)
         version = self.api.get_foreman_version_major()
+        self.assertEqual(self.api.apiversion, 2)
         self.assertEqual(version, 2)
 
     def test_puppet_class_info(self):
