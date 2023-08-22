@@ -328,10 +328,16 @@ class DmsAPIv3(API.HttpAPI):
         return _result
 
     # to be used instead of 'get_gav' and downloading from artifactory
-    def download(self, artifact_id, write_to=None):
+    def download_component(self, component, version, artifact_id, write_to=None):
+        logging.debug(f"Downloading {component}/{version}/{artifact_id} to [{write_to}]")
+        return self.get(['components', component, 'versions', version, 'artifacts', str(artifact_id), 'download'], 
+                        stream=True, write_to=write_to)
+
+    def download_artifact(self, artifact_id, write_to=None):
         """
         Download artifact by id
         :param int artifact_id: DMS artifact id
         :param write_to: file-like object to write to
         """
-        raise NotImplementedError("TODO:...")
+        logging.debug(f"Downloading [{artifact_id}] to [{write_to}]")
+        return self.get(['artifacts', str(artifact_id), 'download'], stream=True, write_to=write_to)
