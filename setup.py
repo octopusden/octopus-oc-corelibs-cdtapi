@@ -3,7 +3,7 @@
 from setuptools import setup
 from sys import version_info
 
-__version = "3.9.6"
+__version = "3.10.0"
 install_requires = ["requests"]
 tests_require = []
 
@@ -22,7 +22,7 @@ spec = {
     "packages": ["oc_cdtapi"],
     "install_requires": install_requires,
     "tests_require": tests_require,
-    "python_requires": ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
+    "python_requires": ">=3.6",
     "scripts": [
         "nexus.py"
     ],
