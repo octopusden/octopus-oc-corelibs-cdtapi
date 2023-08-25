@@ -27,13 +27,23 @@ class TestDmsApiV3(unittest.TestCase):
 
     def test_get_versions(self):
         _ret_dict = {"versions": [
-            {"version": "1"},
-            {"version": "2"},
-            {"version": "3"}]}
+            {"version": "1", "status": "RELEASE"},
+            {"version": "2", "status": "RC"},
+            {"version": "3", "status": "RELEASE"}]}
         _ret = unittest.mock.MagicMock()
         _ret.json = unittest.mock.MagicMock(return_value=_ret_dict)
         self._dms.get.return_value = _ret
-        self.assertListEqual(["1", "2", "3"], self._dms.get_versions('component'))
+        self.assertListEqual(["1", "2", "3"], self._dms.get_versions('component', version_status=None))
+        self._dms.get.assert_called_once_with(['components', 'component', 'versions'])
+
+        # getting RC
+        self._dms.get.reset_mock()
+        self.assertListEqual(["2"], self._dms.get_versions('component', version_status="RC"))
+        self._dms.get.assert_called_once_with(['components', 'component', 'versions'])
+
+        # getting RELEASE
+        self._dms.get.reset_mock()
+        self.assertListEqual(["1", "3"], self._dms.get_versions('component'))
         self._dms.get.assert_called_once_with(['components', 'component', 'versions'])
 
     def test_get_artifacts(self):

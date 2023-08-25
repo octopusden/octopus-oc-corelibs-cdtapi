@@ -315,14 +315,27 @@ class DmsAPIv3(API.HttpAPI):
 
     # 'get_gav' is not supported in v.3 since 'DEB' and 'RPM' packages do not have GAVs by-default
 
-    def get_versions(self, component):
+    def get_versions(self, component, version_status=['RELEASE']):
         """
         Return list of versions for component
         :param str component: component name
+        :param list version_status: version statuses to filter, possible: ['RELEASE', 'RC']
         :return list: versions
         """
-        logging.debug(f"Requested versions for [{component}]")
-        _result = list(map(lambda x: x.get('version'), self.get(['components', component, 'versions']).json().get("versions", list())))
+        logging.debug(f"Requested versions for [{component}], version statuses: [{version_status}]")
+        _result = self.get(['components', component, 'versions']).json().get("versions", list())
+        logging.debug(f"Got array of [{len(_result)}] elements")
+
+        if version_status:
+            logging.debug(f"Filtering versions")
+
+            if isinstance(version_status, str):
+                logging.debug(f"Converting [{version_status}] to list")
+                version_status = [version_status]
+
+            _result = list(filter(lambda x: x.get('status') in version_status, _result))
+
+        _result = list(map(lambda x: x.get('version'), _result))
         logging.debug(f"About to return array of [{len(_result)}] elements")
 
         return _result
