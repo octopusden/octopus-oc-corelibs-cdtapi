@@ -319,10 +319,10 @@ class DmsAPIv3(API.HttpAPI):
         """
         Return list of versions for component
         :param str component: component name
-        :param list version_status: version types to filter, possible: ['RELEASE', 'RC']
+        :param list version_status: version statuses to filter, possible: ['RELEASE', 'RC']
         :return list: versions
         """
-        logging.debug(f"Requested versions for [{component}], version types: [{version_status}]")
+        logging.debug(f"Requested versions for [{component}], version statuses: [{version_status}]")
         _result = self.get(['components', component, 'versions']).json().get("versions", list())
         logging.debug(f"Got array of [{len(_result)}] elements")
 
