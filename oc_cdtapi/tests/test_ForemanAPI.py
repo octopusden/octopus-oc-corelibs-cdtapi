@@ -67,8 +67,9 @@ class _ForemanAPI(ForemanAPI):
         deploy_on = 1
         
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
-        self.apiversion = 1
-        self.foreman_version = None
+        self.__apiversion = None
+        self.__foreman_version = None
+        self.__foreman_version_major = None
 
     def _read_url(self,url):
         """
@@ -153,14 +154,11 @@ class TestForemanAPI(unittest.TestCase):
         self.assertFalse(isinstance(info, dict))
 
     def test_foreman_version(self):
-        foreman_version = self.api.get_foreman_version()
-        self.assertEqual(foreman_version, "2.5.4")
+        self.assertEqual(self.api.foreman_version, "2.5.4")
 
     def test_foreman_version_major(self):
-        self.assertEqual(self.api.apiversion, 1)
-        version = self.api.get_foreman_version_major()
         self.assertEqual(self.api.apiversion, 2)
-        self.assertEqual(version, 2)
+        self.assertEqual(self.api.foreman_version_major, 2)
 
     def test_puppet_class_info(self):
         info = self.api.puppet_class_info("test_class")

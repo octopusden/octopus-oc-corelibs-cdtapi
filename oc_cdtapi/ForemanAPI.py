@@ -1,9 +1,7 @@
 import json
 import logging
-import os
 import posixpath
 import re
-import sys
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
 from collections import namedtuple, defaultdict
@@ -34,33 +32,39 @@ class ForemanAPI(HttpAPI):
         location_id = 5
         hostgroup = 11
         deploy_on = 1
-        self.apiversion = self._set_foreman_api_version("1")
+        self.__apiversion = None
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
-        self.foreman_version = None
+        self.__foreman_version = None
+        self.__foreman_version_major = None
 
-    def _set_foreman_api_version(self, default):
-        return int(os.getenv("FOREMAN_API_VERSION", default) or default)
-
-    def set_foreman_versions(self):
+    def __set_foreman_versions(self):
         logging.debug('Reached set_foreman_versions')
         response = self.get("status").json()
-        self.foreman_version = response.get("version")
-        logging.debug('version = [%s]' % self.foreman_version)
-        self.apiversion = self._set_foreman_api_version(response.get("api_version"))
-        logging.debug('api_version = [%s]' % self.apiversion)
+        self.__foreman_version = response.get("version")
+        logging.debug('version = [%s]' % self.__foreman_version)
+        self.__apiversion = response.get("api_version")
+        logging.debug('api_version = [%s]' % self.__apiversion)
 
-    def get_foreman_version(self):
-        """
-        lazy init foreman_version
-        """
-        logging.debug('Reached get_foreman_version')
-        if self.foreman_version is None:
-            self.set_foreman_versions()
-        return self.foreman_version
+    @property
+    def apiversion(self):
+        if self.__apiversion:
+            return self.__apiversion
+        self.__set_foreman_versions()
+        return self.__apiversion
 
-    def get_foreman_version_major(self):
-        foreman_version = self.get_foreman_version()
-        return version.parse(foreman_version).major
+    @property
+    def foreman_version(self):
+        if self.__foreman_version:
+            return self.__foreman_version
+        self.__set_foreman_versions()
+        return self.__foreman_version
+
+    @property
+    def foreman_version_major(self):
+        if self.__foreman_version_major:
+            return self.__foreman_version_major
+        self.__foreman_version_major = version.parse(self.foreman_version).major
+        return self.__foreman_version_major
 
     def re(self, req):
         if not req.startswith("foreman_puppet"):
@@ -525,7 +529,7 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to puppet_class_info_v1')
             return self.puppet_class_info_v1(classname)
         elif self.apiversion == 2:
-            if self.get_foreman_version_major() == 2:
+            if self.foreman_version_major == 2:
                 logging.debug('Passing to puppet_class_info_v1')
                 return self.puppet_class_info_v1(classname)
             else:
@@ -614,7 +618,7 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to get_hostgroup_puppetclasses_v1')
             return self.get_hostgroup_puppetclasses_v1(hostgroup_id)
         elif self.apiversion == 2:
-            if self.get_foreman_version_major() == 2:
+            if self.foreman_version_major == 2:
                 logging.debug('Passing to get_hostgroup_puppetclasses_v1')
                 return self.get_hostgroup_puppetclasses_v1(hostgroup_id)
             else:
@@ -646,7 +650,7 @@ class ForemanAPI(HttpAPI):
             logging.debug('Passing to add_puppet_class_to_host_v1')
             self.add_puppet_class_to_host_v1(hostname, params)
         if self.apiversion == 2:
-            if self.get_foreman_version_major() == 2:
+            if self.foreman_version_major == 2:
                 logging.debug('Passing to add_puppet_class_to_host_v1')
                 self.add_puppet_class_to_host_v1(hostname, params)
             else:
