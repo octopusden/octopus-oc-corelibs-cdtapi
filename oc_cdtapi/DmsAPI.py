@@ -11,14 +11,14 @@ class DmsAPIError(API.HttpAPIError):
 
 
 # we use HttpAPI as a base class - the idea of HttpAPI is to use it as a skelet for new API clients
-class DmsAPI(API.HttpAPI):   
+class DmsAPI(API.HttpAPI):
     """
     DmsAPI implementation
     """
     # do not forget about docstrings
 
     # this automatically allows usage of DMS_* environment variables - everything is done in HttpAPI for you
-    _env_prefix = 'DMS'  
+    _env_prefix = 'DMS'
     _env_token = '_TOKEN'
     # for now we have a separate Components Registry Service for components info obtaining
     # TODO: refactor when it will be joined with base DMS API on the server-side
@@ -228,3 +228,129 @@ class DmsAPI(API.HttpAPI):
         logging.debug('Reached %s.ping_dms', self.__class__.__name__)
 
         return self.get([], headers=self.headers).content
+
+
+class DmsAPIv3(API.HttpAPI):
+    """
+    DMS API v.3 implementation
+    """
+    _env_prefix = 'DMS'
+
+    def __req(self, req):
+        """
+        Joining an URL to one posixpath-compatible
+        :param str req: request, may be list of str
+        :return str: joined req
+        """
+        if not req:
+            logging.debug("Empty request")
+            return ""
+
+        if isinstance(req, list):
+            logging.debug(f"re-formatting requested list {req} URL to string")
+            req = posixpath.sep.join(req)
+
+        logging.debug(f"Request to return: {req}")
+
+        return req
+
+    def re(self, req):
+        """
+        Re-defines default request formater, not to be called directly
+        This forms request URL separated by slash from string array
+        :param req: list of str or str for sub-url
+        :return str: full joined URL
+        """
+
+        if not req:
+            logging.debug("Empty request")
+            return self.root
+
+        # do not use 'urlparse.urljoin' here because it gives wrong result if 'root'
+        # contains sub-path. Example:
+        # urlparse.urljoin("https://exapmle.com:5400/c1/c2/c3", "c4/c5/c6")
+        # gives 'https://exapmle.com:5400/c1/c2/c4/c5/c6'
+        # while 'https://exapmle.com:5400/c1/c2/c3/c4/c5/c6' expected ('c3' missing)
+        _req = posixpath.join(self.root, "dms-service", "rest", "api", "3", self.__req(req)).rstrip(posixpath.sep)
+        logging.debug(f"Returning request URL: {_req}")
+
+        return _req
+
+    def ping_dms(self):
+        """
+        sends a request to dms root
+        :return requests.Response: server response
+        """
+        logging.debug("Sending DMS ping")
+
+        return self.get([]).content
+
+    def get_artifacts(self, component, version, ctype=None):
+        """
+        Get list of artifacts of given component, version and type
+        :param str component: DMS component name
+        :param str version: DMS version name
+        :param str ctype: type of artifact if not specified - query all known types
+        :return list: artifacts
+        """
+        logging.debug(f"Requested artifacts for [{component}], version {version}, type [{ctype}])")
+
+        _result = self.get(['components', component, 'versions', version, 'artifacts'], 
+                           params=None if not ctype else {"type": ctype}).json().get('artifacts', list())
+
+        logging.debug(f'About to return an array of [{len(_result)}] elements')
+
+        return _result
+
+    def get_components(self):
+        """
+        Gets list of components known to DMS
+        :return list: components
+        """
+        logging.debug("Requested components list")
+        _result = self.get('components').json().get('components', list())
+        logging.debug(f"About to return array of [{len(_result)}] elements")
+
+        return _result
+
+    # 'get_gav' is not supported in v.3 since 'DEB' and 'RPM' packages do not have GAVs by-default
+
+    def get_versions(self, component, version_status=['RELEASE']):
+        """
+        Return list of versions for component
+        :param str component: component name
+        :param list version_status: version statuses to filter, possible: ['RELEASE', 'RC']
+        :return list: versions
+        """
+        logging.debug(f"Requested versions for [{component}], version statuses: [{version_status}]")
+        _result = self.get(['components', component, 'versions']).json().get("versions", list())
+        logging.debug(f"Got array of [{len(_result)}] elements")
+
+        if version_status:
+            logging.debug(f"Filtering versions")
+
+            if isinstance(version_status, str):
+                logging.debug(f"Converting [{version_status}] to list")
+                version_status = [version_status]
+
+            _result = list(filter(lambda x: x.get('status') in version_status, _result))
+
+        _result = list(map(lambda x: x.get('version'), _result))
+        logging.debug(f"About to return array of [{len(_result)}] elements")
+
+        return _result
+
+    # to be used instead of 'get_gav' and downloading from artifactory
+    def download_component(self, component, version, artifact_id, write_to=None):
+        logging.debug(f"Downloading {component}/{version}/{artifact_id} to [{write_to}]")
+        return self.get(['components', component, 'versions', version, 'artifacts', str(artifact_id), 'download'], 
+                        stream=True, write_to=write_to)
+
+    def download_artifact(self, artifact_id, write_to=None):
+        """
+        Download artifact by id
+        :param int artifact_id: DMS artifact id
+        :param write_to: file-like object to write to
+        """
+        logging.debug(f"Downloading [{artifact_id}] to [{write_to}]")
+        return self.get(['artifacts', str(artifact_id), 'download'], stream=True, write_to=write_to)
