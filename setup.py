@@ -3,8 +3,11 @@
 from setuptools import setup
 from sys import version_info
 
-__version = "3.10.1"
-install_requires = ["requests"]
+__version = "3.10.2"
+install_requires = [
+    "requests",
+    "packaging"
+]
 tests_require = []
 
 if version_info.major < 3:
