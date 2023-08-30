@@ -270,8 +270,7 @@ class ForemanAPI(HttpAPI):
     def create_host_v2(self, task, custom_json):
 
         logging.debug('Reached create_host_v2')
-        logging.debug('task = [%s]' % task)
-        hostname = task['task_content']['resources']['name']
+        logging.debug('hostname = [%s]' % hostname)
         cores = 1
         memory = 4096
         disk = 50
