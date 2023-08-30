@@ -59,7 +59,7 @@ class _ForemanAPI(ForemanAPI):
 
     def __init__(self, *args, **argv):
         self.web = _Session(self._read_url)
-        self.root = "https://foreman"
+        self.root = "https://foreman.example.com"
         class_defaults = namedtuple("values", "exp_date location_id hostgroup deploy_on")
         exp_date = "01/01/2030"
         location_id = 5
