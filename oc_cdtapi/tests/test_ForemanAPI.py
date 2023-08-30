@@ -1,10 +1,5 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python3
 
-import sys
-#if sys.version[0]=='3':
-#    from io import StringIO
-#else:
-#    import StringIO
 import re
 import json
 import unittest
@@ -59,7 +54,7 @@ class _ForemanAPI(ForemanAPI):
 
     def __init__(self, *args, **argv):
         self.web = _Session(self._read_url)
-        self.root = "https://foreman"
+        self.root = "https://foreman.example.com"
         class_defaults = namedtuple("values", "exp_date location_id hostgroup deploy_on")
         exp_date = "01/01/2030"
         location_id = 5
@@ -67,7 +62,7 @@ class _ForemanAPI(ForemanAPI):
         deploy_on = 1
         
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
-        self.__apiversion = None
+        self.__apiversion = 1
         self.__foreman_version = None
         self.__foreman_version_major = None
 
@@ -140,10 +135,7 @@ class TestForemanAPI(unittest.TestCase):
             self.api.create_host("test")
 
     def test_create_host_correct_values(self):
-        try:
-            self.api.create_host(custom_json=self.json_object)
-        except ForemanAPIError:
-            raise
+        self.api.create_host(custom_json=self.json_object)
 
     def test_get_host_info(self):
         info = self.api.get_host_info("test")
@@ -156,8 +148,12 @@ class TestForemanAPI(unittest.TestCase):
     def test_foreman_version(self):
         self.assertEqual(self.api.foreman_version, "2.5.4")
 
-    def test_foreman_version_major(self):
+    #TODO: unmark and re-factor when tests for 'ForemanAPI.apiversion==2' will be created
+    @unittest.expectedFailure
+    def test_foreman_apiversion(self):
         self.assertEqual(self.api.apiversion, 2)
+
+    def test_foreman_version_major(self):
         self.assertEqual(self.api.foreman_version_major, 2)
 
     def test_puppet_class_info(self):

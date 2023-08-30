@@ -211,6 +211,7 @@ class ForemanAPI(HttpAPI):
                                 deploy_on, custom_json)
         elif self.apiversion == 2:
             logging.debug('Passing to create_host_v2')
+            # This is wierd horror: caller provides 'task' as 'hostname' argument!
             self.create_host_v2(hostname, custom_json)
 
     def create_host_v1(self, hostname, cores, memory, disk, owner_id,
@@ -272,6 +273,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached create_host_v2')
         logging.debug('task = [%s]' % task)
         hostname = task['task_content']['resources']['name']
+        logging.debug('hostname = [%s]' % hostname)
         cores = 1
         memory = 4096
         disk = 50
