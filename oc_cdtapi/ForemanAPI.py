@@ -267,7 +267,7 @@ class ForemanAPI(HttpAPI):
         logging.debug(default_params)
         request = self.post("hosts", headers=self.headers, json=default_params)
 
-    def create_host_v2(self, task, custom_json):
+    def create_host_v2(self, hostname, custom_json):
 
         logging.debug('Reached create_host_v2')
         logging.debug('hostname = [%s]' % hostname)
