@@ -29,8 +29,7 @@ class DmsAPI(API.HttpAPI):
         Initialiazing the parent class then loading the DMS API's bearer token
         """
 
-        # TODO: re-factor when Python2 support will be deprecated
-        super(DmsAPI, self).__init__(*args, **argv)
+        super().__init__(*args, **argv)
         self.crs_root = os.getenv(self._env_prefix + self._env_crs)
         token = os.getenv(self._env_prefix + self._env_token)
 
@@ -201,7 +200,9 @@ class DmsAPI(API.HttpAPI):
     def get_types(self): 
         return ['notes', 'distribution', 'report', 'static', 'documentation']
 
-    def get_versions(self, component):
+    # Some DMS implementations may return a result without 'status' key
+    # 'None' value added to defaults for this case
+    def get_versions(self, component, version_status=['RELEASE', None]):
         """
         fetches list of versions for specified component
         :param str component: component name
@@ -215,10 +216,21 @@ class DmsAPI(API.HttpAPI):
 
         req = ['2', 'component', component, 'versions']
 
-        versions = list(map(lambda x: x.get('version'), self.get(req, headers=self.headers).json().get('versions')))
-        logging.debug('About to return an array of %d elements', len(versions))
+        _result = self.get(req, headers=self.headers).json().get('versions')
+        # filter versions by-type
+        if version_status:
+            logging.debug(f"Filtering versions")
 
-        return versions
+            if isinstance(version_status, str):
+                logging.debug(f"Converting [{version_status}] to list")
+                version_status = [version_status]
+
+            _result = list(filter(lambda x: x.get('status') in version_status, _result))
+
+        _result = list(map(lambda x: x.get('version'), _result))
+        logging.debug('About to return an array of %d elements', len(_result))
+
+        return _result
 
     def ping_dms(self):
         """
@@ -315,7 +327,9 @@ class DmsAPIv3(API.HttpAPI):
 
     # 'get_gav' is not supported in v.3 since 'DEB' and 'RPM' packages do not have GAVs by-default
 
-    def get_versions(self, component, version_status=['RELEASE']):
+    # Some DMS implementations may return a result without 'status' key
+    # 'None' value added to defaults for this case
+    def get_versions(self, component, version_status=['RELEASE', None]):
         """
         Return list of versions for component
         :param str component: component name

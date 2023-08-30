@@ -1,19 +1,13 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-from sys import version_info
 
-__version = "3.10.2"
+__version = "3.10.3"
 install_requires = [
     "requests",
     "packaging"
 ]
 tests_require = []
-
-if version_info.major < 3:
-    # these modlues comes with 3.6 and later intepreters but not included in 2.7
-    install_requires.append("mock==2.0.0") # needed for tests only but can not be installed with 'pip' if not specified here
-    install_requires.append("enum")
 
 spec = {
     "name": "oc-cdtapi",

@@ -140,10 +140,7 @@ class TestForemanAPI(unittest.TestCase):
             self.api.create_host("test")
 
     def test_create_host_correct_values(self):
-        try:
-            self.api.create_host(custom_json=self.json_object)
-        except ForemanAPIError:
-            raise
+        self.api.create_host(custom_json=self.json_object)
 
     def test_get_host_info(self):
         info = self.api.get_host_info("test")
