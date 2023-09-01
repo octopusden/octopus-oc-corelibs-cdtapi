@@ -485,6 +485,7 @@ class ForemanAPI(HttpAPI):
         Updates the host using the payload
         """
         logging.debug('Reached update_host_v1')
+        logging.debug(f"Payload: {payload}")
         request = self.put(posixpath.join("hosts", hostname), headers=self.headers, json=payload)
 
     def update_host_v2(self, hostname, payload):
