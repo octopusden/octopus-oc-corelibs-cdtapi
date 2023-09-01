@@ -485,6 +485,7 @@ class ForemanAPI(HttpAPI):
         Updates the host using the payload
         """
         logging.debug('Reached update_host_v1')
+        logging.debug(f"Payload: {payload}")
         request = self.put(posixpath.join("hosts", hostname), headers=self.headers, json=payload)
 
     def update_host_v2(self, hostname, payload):
@@ -1167,9 +1168,25 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached set_host_owner')
         owner_id = self.get_owner(owner)
         owner_type = 'User'
+        
         if not owner_id:
             owner_id = self.get_usergroup_id(owner)
             owner_type = 'Usergroup'
+            
         if not owner_id:
             raise ForemanAPIError(f"The owner [{owner}] is not found")
+            
         self.update_host(hostname, {"host": {"owner_id": owner_id, "owner_type": owner_type}})
+
+
+    def set_host_owner_id(self, hostname, owner_id):
+        """
+        Change host owner_id
+        :param hostname: str
+        :param owner_id: str
+        """
+        logging.debug('Reached set_host_owner_id')
+        pl = {}
+        pl['host'] = {}
+        pl['host']['owner_id'] = owner_id
+        self.update_host(hostname, pl)
