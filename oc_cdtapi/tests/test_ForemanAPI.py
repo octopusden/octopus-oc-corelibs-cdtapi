@@ -237,3 +237,5 @@ class TestForemanAPI(unittest.TestCase):
         uuid = self.api.get_host_uuid("test2")
         self.assertIsNone(uuid)
 
+    def test_set_host_owner(self):
+        self.api.set_host_owner('test-host-name', 'user1')
