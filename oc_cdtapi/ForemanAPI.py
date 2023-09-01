@@ -1157,3 +1157,19 @@ class ForemanAPI(HttpAPI):
         groups_qty = self.get("usergroups", params={"per_page": 1}).json()["total"]
         groups = [group["name"] for group in self.get("usergroups", params={"per_page": groups_qty}).json()["results"]]
         return groups
+
+    def set_host_owner(self, hostname, owner):
+        """
+        Change host owner
+        :param hostname: str
+        :param owner: str
+        """
+        logging.debug('Reached set_host_owner')
+        owner_id = self.get_owner(owner)
+        owner_type = 'User'
+        if not owner_id:
+            owner_id = self.get_usergroup_id(owner)
+            owner_type = 'Usergroup'
+        if not owner_id:
+            raise ForemanAPIError(f"The owner [{owner}] is not found")
+        self.update_host(hostname, {"host": {"owner_id": owner_id, "owner_type": owner_type}})
