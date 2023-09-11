@@ -42,8 +42,7 @@ class _DmsGetverAPI (DmsGetverAPI):
 
     def get (self, url, params=None):
         resp = FakeResp ()
-        if (url == 'dms-getver/rest/api/1/distribution' and params and params.get('version') == '09.99.99.99') or \
-           url == 'dms-getver/rest/api/1/distribution/id:99' or \
+        if url == 'dms-getver/rest/api/1/distribution/id:99' or \
            url == 'dms-getver/rest/api/1/distribution-difference/id:99':
             if self.req_counter == 0:
                 resp.status_code = 200
@@ -55,15 +54,6 @@ class _DmsGetverAPI (DmsGetverAPI):
                 resp.content = None
                 resp.jdata = self._fake_state_info (99, 'READY', None)
                 self.req_counter += 1
-        elif url == 'dms-getver/rest/api/1/distribution-difference':
-            resp.status_code = 200
-            resp.content = None
-            resp.jdata = self._fake_state_info_diff (99, 'PROCESSING', None)
-        elif (url == 'dms-getver/rest/api/1/distribution' and params and params.get('version') == '07.77.77.77'):
-            resp.status_code = 404
-            jdata = {}
-            jdata ['code'] = 'DMS-GETVER-40001'
-            resp.jdata = jdata
         elif url == 'dms-getver/distribution/id:99/download':
             if self.req_counter < 3:
                 resp.status_code = 200
@@ -101,14 +91,28 @@ class _DmsGetverAPI (DmsGetverAPI):
             elif 'targetVersion' in json.keys ():
                 version = json ['targetVersion']
             if version == '09.99.99.99':
-                resp.status_code = 200
-                resp.content = None
-                resp.jdata = self._fake_state_info (99, 'INITIATED', None)
+                if self.req_counter == 0:
+                    resp.status_code = 200
+                    resp.content = None
+                    resp.jdata = self._fake_state_info (99, 'INITIATED', None)
+                    self.req_counter += 1
+                elif self.req_counter == 1:
+                    resp.status_code = 200
+                    resp.content = None
+                    resp.jdata = self._fake_state_info (99, 'PROCESSING', None)
+                    self.req_counter += 1
+                elif self.req_counter == 2:
+                    resp.content = None
+                    resp.jdata = self._fake_state_info (99, 'READY', None)
+                    self.req_counter += 1
             elif version == '08.88.88.88':
                 resp.status_code = 500
                 resp.content = None
-        elif url == 'dms-getver/rest/api/1/distribution/search':
-            return self.get ('dms-getver/rest/api/1/distribution', params = json)
+            elif version == '07.77.77.77':
+                resp.status_code = 404
+                jdata = {}
+                jdata ['code'] = 'DMS-GETVER-40001'
+                resp.jdata = jdata
         return resp
 
 
@@ -277,6 +281,7 @@ class TestDmsGetverAPI (unittest.TestCase):
         version = '09.99.99.99'
         distr_type = 'CARDS'
         client_filter = 'FILTER'
+        da.req_counter = 1
         distr_state_info = da.get_distr_state_info (version = version, distr_type = distr_type, client_filter = client_filter)
         state = distr_state_info ['state']
         self.assertEqual (state, 'PROCESSING')
@@ -298,6 +303,7 @@ class TestDmsGetverAPI (unittest.TestCase):
         source_version = '08.88.88.88'
         distr_type = 'CARDS'
         client_filter = 'FILTER'
+        da.req_counter = 1
         distr_state_info = da.get_distr_state_info (version = version, source_version = source_version, distr_type = distr_type, client_filter = client_filter)
         state = distr_state_info ['state']
         self.assertEqual (state, 'PROCESSING')

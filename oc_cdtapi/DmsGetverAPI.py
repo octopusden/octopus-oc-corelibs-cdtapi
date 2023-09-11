@@ -309,7 +309,10 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('URL = [%s]' % url)
 
         try:
-            resp = self.post(url, json=parms)
+            if 'id:' in url:
+                resp = self.get(url, params=parms)
+            else:
+                resp = self.post(url, json=parms)
         except API.HttpAPIError as e:
             resp = e.resp
 
