@@ -309,14 +309,7 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('URL = [%s]' % url)
 
         try:
-            # TODO: refactor to get rid of this everystic fork if possible
-            # when new version of DMS API will be implemented
-            if 'search' in url.split(posixpath.sep):
-                logging.debug('[search] endpoint, assuming POST')
-                resp = self.post(url, json=parms)
-            else:
-                logging.debug('not a [search] endpoint, assuming GET')
-                resp = self.get(url, params=parms)
+            resp = self.post(url, json=parms)
         except API.HttpAPIError as e:
             resp = e.resp
 
@@ -363,7 +356,7 @@ class DmsGetverAPI (API.HttpAPI):
             parms = {'initialFilters': client_filter, 'initialVersion': source_version,
                      'product': distr_type, 'targetFilters': client_filter, 'targetVersion': version}
         else:
-            url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution', 'search')
+            url = posixpath.join('dms-getver', 'rest', 'api', '1', 'distribution')
             parms = {'filter': client_filter, 'product': distr_type, 'version': version}
 
         logging.debug('URL=[%s]' % url)
