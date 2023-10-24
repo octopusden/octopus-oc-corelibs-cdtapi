@@ -42,6 +42,7 @@ class RundeckAPI(HttpAPI):
     def api_version(self):
         """
         Return current API version
+        :return int:
         """
         if not self._api_version:
             self._get_api_version()
@@ -52,6 +53,7 @@ class RundeckAPI(HttpAPI):
     def headers(self):
         """
         Return default headers basing on authorization method
+        :return dict:
         """
         _result = {
                 "Content-type": "application/json",
@@ -82,6 +84,7 @@ class RundeckAPI(HttpAPI):
     def cookies(self):
         """
         Return authorization cookie
+        :return dict:
         """
 
         if self._token:
@@ -121,6 +124,22 @@ class RundeckAPI(HttpAPI):
         _t = list(_response.history).pop(0).cookies
         self._auth_cookie = dict((_x, _t.get(_x)) for _x in ["JSESSIONID"])
 
+    def __append_path_list(self, req, apnd):
+        """
+        Append request URL with appendix given to get rid of TypeError
+        :param str req: a source request
+        :param str apnd: appendix
+        :return list:
+        """
+
+        if not isinstance(req, list):
+            req = list(filter(lambda x: x, posixpath.split(req)))
+
+        if not isinstance(apnd, list):
+            apnd = list(filter(lambda x: x, posixpath.split(apnd)))
+
+        return req + apnd
+
     def re(self, req):
         """
         Preprocess request URL
@@ -128,35 +147,32 @@ class RundeckAPI(HttpAPI):
         if not isinstance(req, list): 
             req = list(filter(lambda x: x, posixpath.split(req)))
 
-        req = ["api", str(self.api_version)] + req
+        req = self.__append_path_list(["api", str(self.api_version)], req)
         return super().re(req)
 
-    def key_storage__list_keys(self, path=None):
+    def key_storage__list(self, path=None):
         """
         list internal KeyStorage content
+        also provides metadata if 'path' specifies a key
         :param str path: internal path to list
+        :return dict:
         """
         logging.debug(f"path: {path}")
         _req = ["storage", "keys"]
 
         if path:
-            if isinstance(path, str):
-                path = list(filter(lambda x: x, posixpath.split(path)))
-
-            self._logger.debug(f"path: {path}")
-            _req += path
-            self._logger.debug(f"_req: {_req}")
+            _req =self.__append_path_list(_req, path)
 
         _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
         return _resp.json()
 
-    def key_storage__key_exists(self, path):
+    def key_storage__exists(self, path):
         """
         Check if key exists
         :param str path: internal Rundeck path to the key to check
         """
         try:
-            self.key_storage__list_keys(path)
+            self.key_storage__list(path)
         except HttpAPIError as _e:
             if _e.code == requests.codes.not_found:
                 return False
@@ -164,3 +180,41 @@ class RundeckAPI(HttpAPI):
             raise
 
         return True
+
+    def key_storage__upload(self, path, key_type, content):
+        """
+        Create or update a key
+        :param str path: internal KeyStorage path
+        :param str key_type: type of key. May be set as 'application/xxx' directly or via aliases supported:
+                             private, public, password
+        :param bytes content: bytes array provides a password
+        """
+        if not path:
+            raise ValueError("Key path is mandatory")
+
+        if not key_type:
+            raise ValueError("Key type is mandatory")
+
+        if not content:
+            raise ValueError("Key content is mandatory")
+
+        # if key exists then we should update its content using PUT method
+        # otherwise we have to create new one using POST method
+        _req = self.__append_path_list(["storage", "keys"], path)
+        _headers = self.headers
+
+        # key type should be one of: 
+        ###     application/octet-stream specifies a private key
+        ### application/pgp-keys specifies a public key
+        ### application/x-rundeck-data-password specifies a password
+        __keytype_map = {
+                "private": "application/octet-stream",
+                "public": "application/pgp-keys",
+                "password": "application/x-rundeck-data-password" }
+
+        # use a value from a map if given, or provide 'as is' if not
+        key_type = __keytype_map.get(key_type, key_type)
+        _headers["Content-type"] = __keytype_map.get(key_type, key_type)
+
+        _method = self.put if self.key_storage__exists(path) else self.post
+        _method(req=_req, headers=_headers, data=content)
