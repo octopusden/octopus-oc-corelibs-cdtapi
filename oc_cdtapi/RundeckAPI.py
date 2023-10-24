@@ -218,3 +218,15 @@ class RundeckAPI(HttpAPI):
 
         _method = self.put if self.key_storage__exists(path) else self.post
         _method(req=_req, headers=_headers, data=content)
+
+    def key_storage__delete(self, path):
+        """
+        Delete a key if exists
+        :param str path: path to a key to remove
+        """
+        if not self.key_storage__exists(path):
+            logging.debug(f"{path} does not exist")
+            return
+
+        _req = self.__append_path_list(["storage", "keys"], path)
+        self.delete(_req)
