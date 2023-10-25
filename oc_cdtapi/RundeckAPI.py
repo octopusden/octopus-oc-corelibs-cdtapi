@@ -155,7 +155,8 @@ class RundeckAPI(HttpAPI):
         list internal KeyStorage content
         also provides metadata if 'path' specifies a key
         :param str path: internal path to list
-        :return dict:
+        :return dict: a dictionary with list of "resources" with all keys metadata if "path" not given
+        :return dict: a dictionary with direct key metadata if single key given as "path"
         """
         logging.debug(f"path: {path}")
         _req = ["storage", "keys"]
@@ -166,13 +167,9 @@ class RundeckAPI(HttpAPI):
         _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
         return _resp.json()
 
-    def key_storage__exists(self, path):
-        """
-        Check if key exists
-        :param str path: internal Rundeck path to the key to check
-        """
+    def __object_exists(self, method, object_id):
         try:
-            self.key_storage__list(path)
+            method(object_id)
         except HttpAPIError as _e:
             if _e.code == requests.codes.not_found:
                 return False
@@ -180,6 +177,14 @@ class RundeckAPI(HttpAPI):
             raise
 
         return True
+
+    def key_storage__exists(self, path):
+        """
+        Check if key exists
+        :param str path: internal Rundeck path to the key to check
+        :return bool:
+        """
+        return self.__object_exists(self.key_storage__list, path)
 
     def key_storage__upload(self, path, key_type, content):
         """
@@ -198,7 +203,7 @@ class RundeckAPI(HttpAPI):
         if not content:
             raise ValueError("Key content is mandatory")
 
-        # if key exists then we should update its content using PUT method
+        # if key exists then we should update its conkey_storage__listtent using PUT method
         # otherwise we have to create new one using POST method
         _req = self.__append_path_list(["storage", "keys"], path)
         _headers = self.headers
@@ -215,7 +220,6 @@ class RundeckAPI(HttpAPI):
         # use a value from a map if given, or provide 'as is' if not
         key_type = __keytype_map.get(key_type, key_type)
         _headers["Content-type"] = __keytype_map.get(key_type, key_type)
-
         _method = self.put if self.key_storage__exists(path) else self.post
         _method(req=_req, headers=_headers, data=content)
 
@@ -230,3 +234,50 @@ class RundeckAPI(HttpAPI):
 
         _req = self.__append_path_list(["storage", "keys"], path)
         self.delete(_req)
+
+    def project__list(self):
+        """
+        Get short metadata for all projects
+        :param str project: project name; list all projects if not specified
+        :return list: list of dictionaries with all projects short metadata
+        """
+        _req = ["projects"]
+        _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
+        return _resp.json()
+
+    def project__info(self, project):
+        """
+        Get full project metadata
+        :param str project: project name
+        :return dict: dictionary with single project information if one specified
+        """
+        if not project:
+            raise ValueEror("Project is mandatory")
+
+        _req = ["project", project]
+        _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
+        return _resp.json()
+
+    def project__exists(self, project):
+        """
+        check if project with a name given exists
+        :param str project: project name
+        :return bool:
+        """
+        return self.__object_exists(self.project__info, project)
+
+    def project__get_configuration(self, project):
+        """
+        Get project configuration parameters
+        :param str project: project name
+        :return dict:
+        """
+
+    def project__update(self, project, definition):
+        """
+        Create or update project
+        :param project: project name
+        :param str definition: project definition as read of 'project.properties' file
+        :param dict definition: project definition dictionary {"propname":"propvalue", ...}
+        """
+        pass
