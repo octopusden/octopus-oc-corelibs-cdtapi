@@ -42,7 +42,7 @@ class RundeckAPI(HttpAPI):
     def __to_dict(self, object_d):
         """
         Convert to dictionary
-        :param BufferIO object_d: file-like object opened in string mode, considered as '.json' or '.properties' file
+        :param _io.TextIOWrapper object_d: file-like object opened in string mode, considered as '.json' or '.properties' file
         :param str object_d: a string with JSON or .properties definition
         :param dict object_d: a ditionary object
         :return dict:
@@ -338,6 +338,7 @@ class RundeckAPI(HttpAPI):
         :param BufferIO definition: file-like object for project definition
         :param str definition: project definition as read of 'project.properties' file
         :param dict definition: project definition dictionary {"propname":"propvalue", ...}
+        :param _io.TextIOWrapper definition: project definition file-like object
         :return dict:
         """
         self._logger.info(f"Upating project configuration: type of definition: [{type(definition)}]")
@@ -393,3 +394,27 @@ class RundeckAPI(HttpAPI):
             raise ValueError("Project name is mandatory")
 
         return self.delete(["project", project], headers=self.headers, cookies=self.cookies).status_code
+
+    def scm__setup(self, project, integration, plugin_type, definition):
+        """
+        Setup SCM for a project
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :param str plugin_type: plugin to configure
+        :param str definition: string with SCM parameters
+        :param dict definition: dictionary with SCM parameters
+        :param _io.TextIOWrapper definition: file-like object with SCM parameters opened in string mode
+        """
+        pass
+
+    def scm__enable(self):
+        pass
+
+    def scm__disable(self):
+        pass
+
+    def scm__perform(self):
+        pass
+
+    def scm__get_status(self):
+        pass
