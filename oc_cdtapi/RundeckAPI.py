@@ -3,6 +3,7 @@
 # implementation of Rundeck REST API calls
 
 import sys
+import json
 
 if sys.version_info.major < 3:
     raise NotImplementedError("Please use Python version 3 or later")
@@ -38,6 +39,50 @@ class RundeckAPI(HttpAPI):
         super().__init__(root=url, user=user, auth=password)
         self._auth_cookie = None
 
+    def __to_dict(self, object_d):
+        """
+        Convert to dictionary
+        :param BufferIO object_d: file-like object opened in string mode, considered as '.json' or '.properties' file
+        :param str object_d: a string with JSON or .properties definition
+        :param dict object_d: a ditionary object
+        :return dict:
+        """
+        self._logger.info(f"Trying to convert [{type(object_d)}] to [dict]...")
+
+        if isinstance(object_d, dict):
+            self._logger.debug("Dictionary providied, returning 'as is'")
+            return object_d
+
+        if hasattr(object_d, "read"):
+            self._logger.debug("File-like object provided, reading content")
+            object_d = object_d.read()
+
+        # try to parse JSON and return it if OK
+        # NOTE: if 'object_d' has wrong type then TypeError will be raised and NOT handled below
+        try:
+            return json.loads(object_d)
+        except json.decoder.JSONDecodeError:
+            self._logger.info("Unable to decode definition as [JSON] object, parsing as .properties")
+            pass
+
+        _result = dict()
+        for _line in list(map(lambda x: x.strip(), object_d.splitlines())):
+            if not _line:
+                # empty line
+                continue
+
+            if _line.startswith('#'):
+                # comment found
+                continue
+
+            if '=' not in _line:
+                raise SyntaxError(f"Invalid property line: [{_line}]")
+
+            _key,_value = _line.split("=", 1)
+            _result[_key.strip()] = _value.strip()
+
+        return _result
+
     @property
     def api_version(self):
         """
@@ -69,6 +114,7 @@ class RundeckAPI(HttpAPI):
         """
         Obtain API version from Rundeck error response
         """
+        self._logger.info("Try to detect Rundeck API version...")
         # Here we are forced to skip raising exception since we know this MUST be an error
         _tmp_exceptions = (self.raise_exception_low, self.raise_exception_high)
         self.raise_exception_low = 0
@@ -79,6 +125,7 @@ class RundeckAPI(HttpAPI):
         # restore exceptions raising
         self.raise_exception_low, self.raise_exception_high = _tmp_exceptions
         self._api_version = _response.json().get("apiversion")
+        self._logger.info(f"Rundeck API version: [{self._api_version}]")
 
     @property
     def cookies(self):
@@ -100,6 +147,7 @@ class RundeckAPI(HttpAPI):
         """
         Obtain authorization cookie
         """
+        self._logger.info("Try to obtain auth cookie...")
         _rq_params = {"j_username": self._user, "j_password": self._password}
         _response = self.web.post(super().re(["j_security_check"]), data=_rq_params, allow_redirects=True)
         self._logger.debug(f"Authorization response: {_response.status_code}")
@@ -123,6 +171,7 @@ class RundeckAPI(HttpAPI):
         # the lates cookie is the actual one, we should get it
         _t = list(_response.history).pop(0).cookies
         self._auth_cookie = dict((_x, _t.get(_x)) for _x in ["JSESSIONID"])
+        self._logger.info("Auth cookie obtained")
 
     def __append_path_list(self, req, apnd):
         """
@@ -158,14 +207,13 @@ class RundeckAPI(HttpAPI):
         :return dict: a dictionary with list of "resources" with all keys metadata if "path" not given
         :return dict: a dictionary with direct key metadata if single key given as "path"
         """
-        logging.debug(f"path: {path}")
+        self._logger.info(f"Listing keys, path: [{path}]")
         _req = ["storage", "keys"]
 
         if path:
             _req =self.__append_path_list(_req, path)
 
-        _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
-        return _resp.json()
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
     def __object_exists(self, method, object_id):
         try:
@@ -184,6 +232,7 @@ class RundeckAPI(HttpAPI):
         :param str path: internal Rundeck path to the key to check
         :return bool:
         """
+        self._logger.info(f"Check key exists: [{path}]")
         return self.__object_exists(self.key_storage__list, path)
 
     def key_storage__upload(self, path, key_type, content):
@@ -193,7 +242,9 @@ class RundeckAPI(HttpAPI):
         :param str key_type: type of key. May be set as 'application/xxx' directly or via aliases supported:
                              private, public, password
         :param bytes content: bytes array provides a password
+        :return dict:
         """
+        self._logger.info(f"Try to upload key [{path}], type [{key_type}]")
         if not path:
             raise ValueError("Key path is mandatory")
 
@@ -219,21 +270,24 @@ class RundeckAPI(HttpAPI):
 
         # use a value from a map if given, or provide 'as is' if not
         key_type = __keytype_map.get(key_type, key_type)
+        self._logger.debug(f"Key type after adjustment: [{key_type}]")
         _headers["Content-type"] = __keytype_map.get(key_type, key_type)
         _method = self.put if self.key_storage__exists(path) else self.post
-        _method(req=_req, headers=_headers, data=content)
+        return _method(req=_req, headers=_headers, data=content).json()
 
     def key_storage__delete(self, path):
         """
         Delete a key if exists
         :param str path: path to a key to remove
+        :return dict:
         """
+        self._loger.info(f"Deleting key: [{path}]")
         if not self.key_storage__exists(path):
-            logging.debug(f"{path} does not exist")
+            self._logger.debug(f"{path} does not exist")
             return
 
         _req = self.__append_path_list(["storage", "keys"], path)
-        self.delete(_req)
+        return self.delete(_req).json()
 
     def project__list(self):
         """
@@ -241,9 +295,9 @@ class RundeckAPI(HttpAPI):
         :param str project: project name; list all projects if not specified
         :return list: list of dictionaries with all projects short metadata
         """
+        self._logger.info("Lsting projects")
         _req = ["projects"]
-        _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
-        return _resp.json()
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
     def project__info(self, project):
         """
@@ -251,12 +305,13 @@ class RundeckAPI(HttpAPI):
         :param str project: project name
         :return dict: dictionary with single project information if one specified
         """
+        self._logger.info(f"Get project info: [{project}]")
+
         if not project:
             raise ValueEror("Project is mandatory")
 
         _req = ["project", project]
-        _resp = self.get(_req, headers=self.headers, cookies=self.cookies)
-        return _resp.json()
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
     def project__exists(self, project):
         """
@@ -264,6 +319,7 @@ class RundeckAPI(HttpAPI):
         :param str project: project name
         :return bool:
         """
+        self._logger.info(f"Check project exists: [{project}]")
         return self.__object_exists(self.project__info, project)
 
     def project__get_configuration(self, project):
@@ -272,12 +328,68 @@ class RundeckAPI(HttpAPI):
         :param str project: project name
         :return dict:
         """
+        self._logger.info(f"Getting project configuration: [{project}]")
+        _req = ["project", project, "config"]
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def project__update(self, project, definition):
+    def project__update(self, definition):
         """
         Create or update project
-        :param project: project name
+        :param BufferIO definition: file-like object for project definition
         :param str definition: project definition as read of 'project.properties' file
         :param dict definition: project definition dictionary {"propname":"propvalue", ...}
+        :return dict:
         """
-        pass
+        self._logger.info(f"Upating project configuration: type of definition: [{type(definition)}]")
+
+        if not definition:
+            raise ValueError("Project definition is mandatory")
+
+        definition = self.__to_dict(definition)
+        project = definition.get("project.name") or \
+                definition.get("name") or \
+                definition.get("config", dict()).get("project.name")
+
+        self._logger.info(f"Project name: [{project}]")
+
+        if not project:
+            raise ValueError("Project name is not specified in the definition")
+
+        # prepare project name and configuration
+        if not all(list(map(lambda _x: definition.get(_x), ["name", "config"]))):
+            self._logger.debug(f"Both 'configuration' and 'name' absent in the definition, appending all")
+            definition={"name": project, "config": definition}
+        elif definition.get("config"):
+            self._logger.debug(f"Project [{project}] configuration present but 'name' absent in the dict")
+            definition["name"] = project
+        elif definition.get("name"):
+            raise ValueError(f"Project definition has wrong format: 'config' should be specified if 'name' key given")
+
+        self._logger.log(5, f"Project definition: {str(definition)}")
+
+        # if project exists - perform an update
+        # create new one otherwise
+
+        if self.project__exists(project):
+            self._logger.info(f"Project [{project}] exists, performing an update...")
+            return self.put(
+                ["project", project, "config"],
+                data=json.dumps(definition.get("config")),
+                headers=self.headers,
+                cookies=self.cookies).json()
+
+        self._logger.info(f"Project [{project}] does not exist, creating new one")
+        return self.post("projects", data=json.dumps(definition), headers=self.headers, cookies=self.cookies).json()
+
+    def project__delete(self, project):
+        """
+        Delete a project
+        :param str project: project name
+        :return int: status code
+        """
+        self._logger.info(f"Deleting project [{project}]")
+
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        return self.delete(["project", project], headers=self.headers, cookies=self.cookies).status_code
