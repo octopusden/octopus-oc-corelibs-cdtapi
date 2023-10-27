@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-__version = "3.11.0"
+__version = "3.11.6"
 install_requires = [
     "requests",
     "packaging"
