@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import tempfile
 import time
 
 from . import API
@@ -45,6 +47,70 @@ class DmsGetverAPI (API.HttpAPI):
             version=version, source_version=source_version, distr_type=distr_type, client_filter=client_filter)
 
         return distr_state_info
+
+    def download_file(self, image_name, image_id, headers):
+        """
+        """
+        logging.debug('Reached download_file')
+        logging.debug('image_name: [%s]' % image_name)
+        logging.debug('image_id: [%s]' % image_id)
+        logging.debug('headers: [%s]' % headers)
+        url = posixpath.join('api', 'v1', 'images', image_id, 'download')
+        logging.debug('url: [%s]' % url)
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tfn = tf.name
+        logging.debug('tf: [%s]' % tfn)
+        r = self.get(url, headers=headers, stream=True)
+        for chunk in r.iter_content(chunk_size=8192):
+            tf.write(chunk)
+        tf.seek(0)
+        return tfn
+
+    def download_image(self, version=None, source_version=None, distr_type=None, client_filters=None, auth_token=None):
+        """
+        searches for images, calls download
+        :return: path to temp file, image data
+        """
+        logging.debug('Reached download_image')
+        if not auth_token:
+            logging.error('No auth token provided, giving up')
+            return None
+        logging.debug('version = [%s]' % version)
+        logging.debug('source_version = [%s]' % source_version)
+        logging.debug('distr_type = [%s]' % distr_type)
+        logging.debug('client_filters = [%s]' % client_filters)
+        logging.debug('auth_token length = [%s]' % len(auth_token))
+        
+        url = posixpath.join('api', 'v1', 'images')
+        headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {auth_token}'}
+        params = {
+            'strict_filters': 'true',
+            'product_type': distr_type.lower(),
+            'product_version': version,
+            'product_release_stage': 'release',
+            'remap_tablespaces': 'true'
+        }
+        resp = self.get(url, headers=headers, params=params)
+        if not resp.status_code == 200:
+            logging.error('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
+            return None
+        images = resp.json()['items']
+        logging.debug('found [%s] images' % len(images))
+        for image in images:
+            image_id = image['id']
+            image_name = image['name']
+            oracle_version = image['oracle_version']
+            logging.debug('checking images [%s]' % image_name)
+            if oracle_version['oracle_edition'] == 'EE':
+                logging.debug('image is enterprise edition, proceeding to download')
+                tf = self.download_file(image_name, image_id, headers)
+                if not tf:
+                    logging.error('download returned nothing')
+                    return None
+                return tf, image
+        logging.error('No images found')
+        return None
+
 
     def get_distr(self, distr_id, distr_option):
         """
@@ -183,6 +249,41 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('url for log request: [%s]' % url)
 
         return url
+
+    def login(self):
+        """
+        Obtain auth token
+        """
+        logging.debug('Reached login')
+        username = os.getenv('DMS_USER')
+        password = os.getenv('DMS_PASSWORD')
+        login_data = {
+            'grant_type': '',
+            'username': username,
+            'password': password,
+            'scope': '',
+            'client_id': '',
+            'client_secret': ''
+        }
+        rh = self.raise_exception_high
+        self.raise_exception_high = 499
+        url = posixpath.join('api', 'v1', 'auth', 'access-token')
+        try:
+            resp = self.post(url, data=login_data)
+            resp_data = resp.json()
+            if resp.status_code == 200:
+                token_type = resp_data['token_type']
+                access_token = resp_data['access_token']
+            else:
+                logging.debug('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
+                return None
+        except:
+            raise
+        logging.debug('token_type: [%s]' % token_type)
+        logging.debug('access_token: [%s]' % access_token)
+        self.raise_exception_high = rh
+        return token_type, access_token
+
 
     def wait_for_state(self, distr_id, distr_option):
         """
