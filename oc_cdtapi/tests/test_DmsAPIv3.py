@@ -72,3 +72,12 @@ class TestDmsApiV3(unittest.TestCase):
         self._dms.get.assert_called_once_with([
             "components", "component", "versions", "version", "artifacts", "1", "download"],
                                               stream=True, write_to="tempfile")
+
+    def test_get_artifact_info(self):
+        _ret = unittest.mock.MagicMock()
+        self._dms.get.return_value = _ret
+        self._dms.get_artifact_info("component", "version", 1)
+        self._dms.get.assert_called_once_with([
+            "components", "component", "versions", "version", "artifacts", "1"])
+        _ret.json.assert_called_once()
+            

@@ -356,6 +356,14 @@ class DmsAPIv3(API.HttpAPI):
 
     # to be used instead of 'get_gav' and downloading from artifactory
     def download_component(self, component, version, artifact_id, write_to=None):
+        """
+        Download a distributive component for a version given
+        :param str component:
+        :param str version:
+        :param int artifact_id:
+        :param _io.BufferIO write_to: file-like object (binary mode) to write artifact content to
+        """
+
         logging.debug(f"Downloading {component}/{version}/{artifact_id} to [{write_to}]")
         return self.get(['components', component, 'versions', version, 'artifacts', str(artifact_id), 'download'], 
                         stream=True, write_to=write_to)
@@ -368,3 +376,14 @@ class DmsAPIv3(API.HttpAPI):
         """
         logging.debug(f"Downloading [{artifact_id}] to [{write_to}]")
         return self.get(['artifacts', str(artifact_id), 'download'], stream=True, write_to=write_to)
+
+    def get_artifact_info(self, component, version, artifact_id):
+        """
+        Get artifact information by its ID
+        :param str component:
+        :param str version:
+        :param int artifact_id:
+        :return dict:
+        """
+        logging.debug(f"Getting artifact information: [{artifact_id}]")
+        return self.get(['components', component, 'versions', version, 'artifacts', str(artifact_id)]).json()
