@@ -404,17 +404,86 @@ class RundeckAPI(HttpAPI):
         :param str definition: string with SCM parameters
         :param dict definition: dictionary with SCM parameters
         :param _io.TextIOWrapper definition: file-like object with SCM parameters opened in string mode
+        :return dict:
         """
-        pass
+        self._logger.info(" ".join([
+            "Upating project SCM configuration:",
+            f"project: [{project}], integration: [{integration}], plugin_type: [{plugin_type}]",
+            f"type of definition: [{type(definition)}]"]))
 
-    def scm__enable(self):
-        pass
+        # checking arguments
+        if not definition:
+            raise ValueError("SCM definition is mandatory")
 
-    def scm__disable(self):
-        pass
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        if integration not in ["import", "export"]:
+            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+
+        if not plugin_type:
+            raise ValueError("Plugin type is mandatory")
+        
+        definition = self.__to_dict(definition)
+
+        # configuration may be outside of a dict
+        if not definition.get("config"):
+            definition = {"config": definition}
+
+        self._logger.log(5, f"Final definition is: [{definition}]")
+
+        _req = ["project", project, "scm", integration, "plugin", plugin_type, "setup"]
+
+        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(definition)).json()
+
+    def scm__enable(self, project, integration, plugin_type, enable=False):
+        """
+        Turn on/off SCM for a project
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :param str plugin_type: plugin to configure
+        :param bool enable: disable if set to False, enable otherwise
+        :return dict:
+        """
+        self._logger.info(
+                " ".join([
+                    'Enable' if enable else 'Disable',
+                    f"SCM for project [{project}], integration [{integration}], plugin_type [{plugin_type}]"]))
+
+        # checking arguments
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        if integration not in ["import", "export"]:
+            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+
+        if not plugin_type:
+            raise ValueError("Plugin type is mandatory")
+        
+        _req = ["project", project, "scm", integration, "plugin", plugin_type, "enable" if enable else "disable"]
+
+        return self.post(_req, headers=self.headers, cookies=self.cookies).json()
 
     def scm__perform(self):
         pass
 
-    def scm__get_status(self):
-        pass
+    def scm__status(self, project, integration):
+        """
+        Get SCM plugin status for a project
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :return dict:
+        """
+        self._logger.info(
+                f"Get SCM status for project [{project}], integration [{integration}]")
+
+        # checking arguments
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        if integration not in ["import", "export"]:
+            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+
+        _req = ["project", project, "scm", integration, "status"]
+
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
