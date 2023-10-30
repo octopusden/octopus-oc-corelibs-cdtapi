@@ -11,12 +11,14 @@ import os
 
 class TestRundeckApi(unittest.TestCase):
     def setUp(self):
-        self._rundeck = RundeckAPI(url="https://rundeck.example.com", user="test_user", password="test_password")
+        self._url = "https://rundeck.example.com"
+        self._rundeck = RundeckAPI(url=self._url, user="test_user", password="test_password")
         self._rundeck.get = unittest.mock.MagicMock()
         self._rundeck.post = unittest.mock.MagicMock()
         self._rundeck.put = unittest.mock.MagicMock()
         self._rundeck.delete = unittest.mock.MagicMock()
         self._rundeck._auth_cookie = {"JSESSIONID": "test_session_cookie"}
+        self._rundeck._api_version = 17
 
     @property
     def __headers(self):
@@ -27,18 +29,17 @@ class TestRundeckApi(unittest.TestCase):
 
     def test_api_version__get(self):
         self.assertIsNone(self._rundeck._api_version)
-        _rvd = {"apiversion": 16}
+        _rvd = {"apiversion": 36}
         _rv = unittest.mock.MagicMock()
         _rv.json = unittest.mock.MagicMock(return_value=_rvd)
         self._rundeck.web.get = unittest.mock.MagicMock(return_value = _rv)
-        self.assertEqual(self._rundeck.api_version, 16)
+        self.assertEqual(self._rundeck.api_version, 36)
         self._rundeck.web.get.assert_called_once_with(
-                posixpath.join("https://rundeck.example.com", "api", "unsupported"),
+                posixpath.join(self._url, "api", "unsupported"),
                 headers=self.__headers)
 
     def test_api_version__ready(self):
-        self._rundeck._api_version = 16
-        self.assertEqual(self._rundeck.api_version, 16)
+        self.assertEqual(self._rundeck.api_version, 17)
 
     def test_cookies__ready(self):
         self.assertEqual(self._rundeck.cookies, {"JSESSIONID": "test_session_cookie"})
@@ -53,12 +54,12 @@ class TestRundeckApi(unittest.TestCase):
         _rv = unittest.mock.MagicMock()
         _rv.cookies = {"JSESSIONID": "another_test_session_cookie"}
         _rc = unittest.mock.MagicMock()
-        _rc.url = posixpath.join("https://rundeck.example.com", "user", "login")
+        _rc.url = posixpath.join(self._url, "user", "login")
         _rc.history = [_rv]
         self._rundeck.web.post = unittest.mock.MagicMock(return_value=_rc)
         self.assertEqual(self._rundeck.cookies, {"JSESSIONID": "another_test_session_cookie"})
         self._rundeck.web.post.assert_called_once_with(
-                posixpath.join("https://rundeck.example.com", "j_security_check"),
+                posixpath.join(self._url, "j_security_check"),
                 data={"j_username": "test_user", "j_password": "test_password"},
                 allow_redirects=True)
 
@@ -67,14 +68,14 @@ class TestRundeckApi(unittest.TestCase):
         _rv = unittest.mock.MagicMock()
         _rv.cookies = {"JSESSIONID": "another_test_session_cookie"}
         _rc = unittest.mock.MagicMock()
-        _rc.url = posixpath.join("https://rundeck.example.com", "user", "error")
+        _rc.url = posixpath.join(self._url, "user", "error")
         _rc.history = [_rv]
         self._rundeck.web.post = unittest.mock.MagicMock(return_value=_rc)
         with self.assertRaises(HttpAPIError):
             self._rundeck.cookies
 
         self._rundeck.web.post.assert_called_once_with(
-                posixpath.join("https://rundeck.example.com", "j_security_check"),
+                posixpath.join(self._url, "j_security_check"),
                 data={"j_username": "test_user", "j_password": "test_password"},
                 allow_redirects=True)
 
@@ -106,3 +107,12 @@ class TestRundeckApi(unittest.TestCase):
         _x.seek(0, os.SEEK_SET)
         self.assertEqual(self._rundeck._to_dict(_x), __dict)
         _x.close()
+
+    def test_key_storage_list__no_path(self):
+        _rtv = unittest.mock.MagicMock
+        _rv = {"test": "keys"}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.get.return_value=_rtv
+        self.assertEqual(self._rundeck.key_storage__list(), _rv)
+        self._rundeck.get.assert_called_once_with(
+                posixpath.join(self._url, "api", 
