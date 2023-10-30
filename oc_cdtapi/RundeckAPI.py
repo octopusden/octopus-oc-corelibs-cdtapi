@@ -279,15 +279,17 @@ class RundeckAPI(HttpAPI):
         """
         Delete a key if exists
         :param str path: path to a key to remove
-        :return dict:
+        :return int:
         """
-        self._loger.info(f"Deleting key: [{path}]")
+        self._logger.info(f"Deleting key: [{path}]")
+
+        # check exists - to get rid of raising HTTP 404 error
         if not self.key_storage__exists(path):
             self._logger.debug(f"{path} does not exist")
-            return
+            return requests.codes.not_found
 
         _req = self.__append_path_list(["storage", "keys"], path)
-        return self.delete(_req).json()
+        return self.delete(_req, headers=self.headers, cookies=self.cookies).status_code
 
     def project__list(self):
         """
@@ -392,6 +394,11 @@ class RundeckAPI(HttpAPI):
 
         if not project:
             raise ValueError("Project name is mandatory")
+
+        # check exists - to get rid of raising HTTP 404 error
+        if not self.project__exists(project):
+            self._logger.debug(f"{project} does not exist")
+            return requests.codes.not_found
 
         return self.delete(["project", project], headers=self.headers, cookies=self.cookies).status_code
 

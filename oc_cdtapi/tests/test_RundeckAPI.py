@@ -185,10 +185,28 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         _rtv.status_code = requests.codes.ok
         self._rundeck.web.post.return_value=_rtv
-        self.assertEqual(_rv, self._rundeck.key_storage__upload("testKey", "private", "testdata"))
+        self.assertEqual(_rv, self._rundeck.key_storage__upload("testKey", "password", "testdata"))
         self._rundeck.web.post.assert_called_once_with(
                 posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "testKey"),
                 cookies=self.__cookies,
-                headers={"Content-type": "application/octet-stream", "Accept": "application/json"},
+                headers={"Content-type": "application/x-rundeck-data-password", "Accept": "application/json"},
                 data="testdata", params=None, files=None)
         self._rundeck.web.put.assert_not_called()
+
+    def test_key_storage__delete_existing(self):
+        self._rundeck.key_storage__exists = unittest.mock.MagicMock(return_value=True)
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.no_content
+        self._rundeck.web.delete.return_value=_rtv
+        self.assertEqual(requests.codes.no_content, self._rundeck.key_storage__delete("testKey"))
+        self._rundeck.web.delete.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "testKey"),
+                cookies=self.__cookies, headers=self.__headers, data=None, params=None, files=None)
+
+    def test_key_storage__delete_missing(self):
+        self._rundeck.key_storage__exists = unittest.mock.MagicMock(return_value=False)
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.no_content
+        self._rundeck.web.delete.return_value=_rtv
+        self.assertEqual(requests.codes.not_found, self._rundeck.key_storage__delete("testKey"))
+        self._rundeck.web.delete.assert_not_called()
