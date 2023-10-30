@@ -39,7 +39,7 @@ class RundeckAPI(HttpAPI):
         super().__init__(root=url, user=user, auth=password)
         self._auth_cookie = None
 
-    def __to_dict(self, object_d):
+    def _to_dict(self, object_d):
         """
         Convert to dictionary
         :param _io.TextIOWrapper object_d: file-like object opened in string mode, considered as '.json' or '.properties' file
@@ -346,7 +346,7 @@ class RundeckAPI(HttpAPI):
         if not definition:
             raise ValueError("Project definition is mandatory")
 
-        definition = self.__to_dict(definition)
+        definition = self._to_dict(definition)
         project = definition.get("project.name") or \
                 definition.get("name") or \
                 definition.get("config", dict()).get("project.name")
@@ -424,7 +424,7 @@ class RundeckAPI(HttpAPI):
         if not plugin_type:
             raise ValueError("Plugin type is mandatory")
         
-        definition = self.__to_dict(definition)
+        definition = self._to_dict(definition)
 
         # configuration may be outside of a dict
         if not definition.get("config"):
