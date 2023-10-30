@@ -464,8 +464,106 @@ class RundeckAPI(HttpAPI):
 
         return self.post(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def scm__perform(self):
-        pass
+    def scm__get_action_inputs(self, project, integration, action):
+        """
+        Get items needed to be performed actions on
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :param str action: action to perform
+        :return dict:
+        """
+        self._logger.info(
+                f"Get SCM actions input list for project [{project}], integration [{integration}], action [{action}]")
+
+        # checking arguments
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        if integration not in ["import", "export"]:
+            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+
+        if not action:
+            raise ValueError("Action is mandatory")
+        
+        _req = ["project", project, "scm", integration, "action", action, "input"]
+
+        return self.get(_req, headers=self.headers, cookies=self.cookies).json()
+
+    def scm__perform(self, project, integration, action, action_data):
+        """
+        SCM import/export all project items
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :param str action: action to perform
+        :param dict action_data: what to do
+        :return dict:
+        """
+        self._logger.info(" ".join([f"Perform SCM actions for project [{project}], integration [{integration}], action [{action}].",
+                                    f"Action data: {action_data}"]))
+
+        if not action_data:
+            self._logger.info(f"Emtpy action data, nothing to do")
+            return dict()
+
+        # checking arguments
+        if not project:
+            raise ValueError("Project name is mandatory")
+
+        if integration not in ["import", "export"]:
+            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+
+        if not action:
+            raise ValueError("Action is mandatory")
+        
+        _req = ["project", project, "scm", integration, "action", action]
+
+        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(action_data)).json()
+    def scm__perform_all_actions(self, project, integration, action, commit_message=None):
+        """
+        SCM import/export all project items
+        :param str project: project name
+        :param str integration: one of: "import", "export"
+        :param str action: action to perform
+        :param str commit_message: required to do "export-jobs" or so on
+        :return dict:
+        """
+        # arguments checking is done in the sub-method
+        self._logger.info(f"Perform all SCM actions for project [{project}], integration [{integration}], action [{action}]")
+
+        _action_inputs = self.scm__get_action_inputs(project, integration, action)
+        _rq_data = dict()
+
+        if commit_message:
+            _rq_data = {"input": {"message": commit_message}}
+
+        # collect data basing on _action_inputs
+        # fields needed: 
+        ## "jobs" - imprt/export for jobIds, actually useless
+        ## "items" - itemId-s to be imported/exported
+        ## "deleted" - itemIds to be deleted on "export" integration
+        ## "deletedJobs" - jobIds to be deleted on "import" integration
+        _section = f"{integration}Items"
+        self._logger.debug(f"Filtering and mapping section [{_section}]")
+        _rq_data["jobs"] = list()
+        # absence of "itemId" key on RunDeck response is a crime, exception should be raised
+        _rq_data["items"] = list(map(lambda x: x["itemId"], 
+                                     list(filter(lambda x: not x.get("deleted"), _action_inputs.get(_section)))))
+
+        if integration == "export":
+            _rq_data["deleted"] = list(map(lambda x: x["itemId"], 
+                                        list(filter(lambda x: x.get("deleted"), _action_inputs.get(_section)))))
+            _rq_data["deletedJobs"] = list()
+        else:
+            _rq_data["deleted"] = list()
+            # addtional filter on empty "jobId" is necessary here since there may be no job associated yet
+            # no need to do import/deletion then
+            _rq_data["deletedJobs"] = list(filter(lambda x: bool(x),
+                                        list(map(lambda x: x.get("job", dict()).get("jobId"),
+                                           list(filter(lambda x: x.get("deleted"), _action_inputs.get(_section)))))))
+
+        self._logger.debug(f"Action data dict: {_rq_data}")
+        return self.scm__perform(project, integration, action, _rq_data)
+
 
     def scm__status(self, project, integration):
         """
