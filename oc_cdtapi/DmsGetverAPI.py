@@ -48,13 +48,15 @@ class DmsGetverAPI (API.HttpAPI):
 
         return distr_state_info
 
-    def download_file(self, image_name, image_id, headers):
+    def download_file(self, image_id, auth_token):
         """
         """
         logging.debug('Reached download_file')
-        logging.debug('image_name: [%s]' % image_name)
         logging.debug('image_id: [%s]' % image_id)
-        logging.debug('headers: [%s]' % headers)
+        logging.debug('auth_token: [%s]' % auth_token)
+        logging.debug('Unsetting auth')
+        self.web.auth = None
+        headers = self.get_headers_by_token(auth_token)
         url = posixpath.join('api', 'v1', 'images', image_id, 'download')
         logging.debug('url: [%s]' % url)
         tf = tempfile.NamedTemporaryFile(delete=False)
@@ -66,12 +68,23 @@ class DmsGetverAPI (API.HttpAPI):
         tf.seek(0)
         return tfn
 
-    def download_image(self, version=None, source_version=None, distr_type=None, client_filters=None, auth_token=None):
+    def get_headers_by_token(self, auth_token):
+        """
+        """
+        logging.debug('Reached get_headers_by_token')
+        logging.debug('auth_token: [%s]' % auth_token)
+        headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {auth_token}'}
+        logging.debug('About to return: [%s]' % headers)
+        return headers
+
+    def search_image(self, version=None, source_version=None, distr_type=None, client_filters=None, auth_token=None):
         """
         searches for images, calls download
         :return: path to temp file, image data
         """
         logging.debug('Reached download_image')
+        logging.debug('Unsetting auth')
+        self.web.auth = None
         if not auth_token:
             logging.error('No auth token provided, giving up')
             return None
@@ -82,7 +95,7 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('auth_token length = [%s]' % len(auth_token))
         
         url = posixpath.join('api', 'v1', 'images')
-        headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {auth_token}'}
+        headers = self.get_headers_by_token(auth_token)
         params = {
             'strict_filters': 'true',
             'product_type': distr_type.lower(),
@@ -102,15 +115,10 @@ class DmsGetverAPI (API.HttpAPI):
             oracle_version = image['oracle_version']
             logging.debug('checking images [%s]' % image_name)
             if oracle_version['oracle_edition'] == 'EE':
-                logging.debug('image is enterprise edition, proceeding to download')
-                tf = self.download_file(image_name, image_id, headers)
-                if not tf:
-                    logging.error('download returned nothing')
-                    return None
-                return tf, image
+                logging.debug('image is enterprise edition')
+                return image
         logging.error('No images found')
         return None
-
 
     def get_distr(self, distr_id, distr_option):
         """
