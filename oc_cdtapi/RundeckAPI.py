@@ -211,7 +211,7 @@ class RundeckAPI(HttpAPI):
         _req = ["storage", "keys"]
 
         if path:
-            _req =self.__append_path_list(_req, path)
+            _req = self.__append_path_list(_req, path)
 
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
@@ -271,9 +271,9 @@ class RundeckAPI(HttpAPI):
         # use a value from a map if given, or provide 'as is' if not
         key_type = __keytype_map.get(key_type, key_type)
         self._logger.debug(f"Key type after adjustment: [{key_type}]")
-        _headers["Content-type"] = __keytype_map.get(key_type, key_type)
+        _headers["Content-type"] = key_type
         _method = self.put if self.key_storage__exists(path) else self.post
-        return _method(req=_req, headers=_headers, data=content).json()
+        return _method(req=_req, headers=_headers, cookies=self.cookies, data=content).json()
 
     def key_storage__delete(self, path):
         """

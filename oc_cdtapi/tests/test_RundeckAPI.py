@@ -8,26 +8,27 @@ from ..API import HttpAPIError
 import json
 from tempfile import TemporaryFile
 import os
+import requests.status_codes
 
 class TestRundeckApi(unittest.TestCase):
     def setUp(self):
         self._url = "https://rundeck.example.com"
+        self._api_version = 17
         self._rundeck = RundeckAPI(url=self._url, user="test_user", password="test_password")
-        self._rundeck.get = unittest.mock.MagicMock()
-        self._rundeck.post = unittest.mock.MagicMock()
-        self._rundeck.put = unittest.mock.MagicMock()
-        self._rundeck.delete = unittest.mock.MagicMock()
-        self._rundeck._auth_cookie = {"JSESSIONID": "test_session_cookie"}
-        self._rundeck._api_version = 17
-
-    @property
-    def __headers(self):
-        return {'Content-type': 'application/json', 'Accept': 'application/json'}
+        self._rundeck.web.get = unittest.mock.MagicMock()
+        self._rundeck.web.post = unittest.mock.MagicMock()
+        self._rundeck.web.put = unittest.mock.MagicMock()
+        self._rundeck.web.delete = unittest.mock.MagicMock()
+        self._rundeck._api_version = self._api_version
+        self.__headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
+        self.__cookies = {"JSESSIONID": "test_session_cookie"}
+        self._rundeck._auth_cookie = self.__cookies
 
     def test_init(self):
         self.assertEqual(self._rundeck.root, "https://rundeck.example.com")
 
     def test_api_version__get(self):
+        self._rundeck._api_version = None
         self.assertIsNone(self._rundeck._api_version)
         _rvd = {"apiversion": 36}
         _rv = unittest.mock.MagicMock()
@@ -109,10 +110,85 @@ class TestRundeckApi(unittest.TestCase):
         _x.close()
 
     def test_key_storage_list__no_path(self):
-        _rtv = unittest.mock.MagicMock
+        _rtv = unittest.mock.MagicMock()
         _rv = {"test": "keys"}
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
-        self._rundeck.get.return_value=_rtv
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.get.return_value=_rtv
         self.assertEqual(self._rundeck.key_storage__list(), _rv)
-        self._rundeck.get.assert_called_once_with(
-                posixpath.join(self._url, "api", 
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_key_storage_list__with_path(self):
+        _rtv = unittest.mock.MagicMock()
+        _rv = {"test": "keys"}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.get.return_value=_rtv
+        self.assertEqual(self._rundeck.key_storage__list("simplepath"), _rv)
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_key_storage_exists__true(self):
+        _rtv = unittest.mock.MagicMock()
+        _rv = {"test": "keys"}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.get.return_value=_rtv
+        self.assertTrue(self._rundeck.key_storage__exists("simplepath"), _rv)
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_key_storage_exists__false(self):
+        _rtv = unittest.mock.MagicMock()
+        _rv = {}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.not_found
+        self._rundeck.web.get.return_value=_rtv
+        self.assertFalse(self._rundeck.key_storage__exists("simplepath"), _rv)
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_key_storage_upload__wrong_arg(self):
+        with self.assertRaises(ValueError):
+            self._rundeck.key_storage__upload(None, "badkey", "content")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.key_storage__upload("testProject", None, "content")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.key_storage__upload("testProject", "testKey", None)
+
+    def test_key_storage_upload__existing(self):
+        self._rundeck.key_storage__exists = unittest.mock.MagicMock(return_value=True)
+        _rtv = unittest.mock.MagicMock()
+        _rv = {"test": "keys"}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.put.return_value=_rtv
+        self.assertEqual(_rv, self._rundeck.key_storage__upload("testKey", "private", "testdata"))
+        self._rundeck.web.put.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "testKey"),
+                cookies=self.__cookies,
+                headers={"Content-type": "application/octet-stream", "Accept": "application/json"},
+                data="testdata", params=None, files=None)
+        self._rundeck.web.post.assert_not_called()
+
+    def test_key_storage_upload__new(self):
+        self._rundeck.key_storage__exists = unittest.mock.MagicMock(return_value=False)
+        _rtv = unittest.mock.MagicMock()
+        _rv = {"test": "keys"}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.post.return_value=_rtv
+        self.assertEqual(_rv, self._rundeck.key_storage__upload("testKey", "private", "testdata"))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "testKey"),
+                cookies=self.__cookies,
+                headers={"Content-type": "application/octet-stream", "Accept": "application/json"},
+                data="testdata", params=None, files=None)
+        self._rundeck.web.put.assert_not_called()
