@@ -137,7 +137,7 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         _rtv.status_code = requests.codes.ok
         self._rundeck.web.get.return_value=_rtv
-        self.assertTrue(self._rundeck.key_storage__exists("simplepath"), _rv)
+        self.assertTrue(self._rundeck.key_storage__exists("simplepath"))
         self._rundeck.web.get.assert_called_once_with(
                 posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
                 headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
@@ -148,7 +148,7 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         _rtv.status_code = requests.codes.not_found
         self._rundeck.web.get.return_value=_rtv
-        self.assertFalse(self._rundeck.key_storage__exists("simplepath"), _rv)
+        self.assertFalse(self._rundeck.key_storage__exists("simplepath"))
         self._rundeck.web.get.assert_called_once_with(
                 posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
                 headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
@@ -245,3 +245,26 @@ class TestRundeckApi(unittest.TestCase):
             self._rundeck.project__info("")
         self._rundeck.web.get.assert_not_called()
 
+    def test_project__exists__true(self):
+        _project = "TestProject"
+        _rv = {"testProjectInfo": _project}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.ok
+        self._rundeck.web.get.return_value=_rtv
+        self.assertTrue(self._rundeck.project__exists(_project))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_project__exists__false(self):
+        _project = "TestProject"
+        _rtv = unittest.mock.MagicMock()
+        _rv = {}
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        _rtv.status_code = requests.codes.not_found
+        self._rundeck.web.get.return_value=_rtv
+        self.assertFalse(self._rundeck.Project__exists(_project))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
