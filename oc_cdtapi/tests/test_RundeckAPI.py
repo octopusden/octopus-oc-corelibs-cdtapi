@@ -393,4 +393,21 @@ class TestRundeckApi(unittest.TestCase):
         self._rundeck.web.post.assert_not_called()
 
     def test_project__update__wrong_arg(self):
-        pass
+        # no name specified at all
+        _project_definition = {"project.someproperty": "somevalue"}
+
+        with self.assertRaises(ValueError):
+            self._rundeck.project__update(_project_definition)
+
+        # config present but without name
+        _project_definition = {"config":{"project.someproperty": "somevalue"}}
+
+        with self.assertRaises(ValueError):
+            self._rundeck.project__update(_project_definition)
+
+        # name present but no config
+        _project_definition = {"name": "someName"}
+
+        with self.assertRaises(ValueError):
+            self._rundeck.project__update(_project_definition)
+

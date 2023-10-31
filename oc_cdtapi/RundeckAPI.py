@@ -363,7 +363,7 @@ class RundeckAPI(HttpAPI):
             raise ValueError("Project name is not specified in the definition")
 
         # prepare project name and configuration
-        if not all(list(map(lambda _x: definition.get(_x), ["name", "config"]))):
+        if all(list(map(lambda _x: not definition.get(_x), ["name", "config"]))):
             self._logger.debug(f"Both 'configuration' and 'name' absent in the definition, appending all")
             definition={"name": project, "config": definition}
         elif definition.get("config"):
