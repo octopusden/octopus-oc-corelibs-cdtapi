@@ -499,7 +499,7 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.status_code = requests.codes.ok
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         self._rundeck.web.post.return_value = _rtv
-        self.assertEqual(_rv, self._rundeck.scm__enable(_project, _integration, _plugin_type, _scm_def, True))
+        self.assertEqual(_rv, self._rundeck.scm__enable(_project, _integration, _plugin_type, True))
         self._rundeck.web.post.assert_called_once_with(
                 posixpath.join(self._url, "api", str(self._api_version), 
                     "project", _project, "scm", _integration, "plugin", _plugin_type, "enable"),
@@ -507,7 +507,20 @@ class TestRundeckApi(unittest.TestCase):
                 headers=self.__headers, cookies=self.__cookies, params=None, files=None)
 
     def test_scm_enable__false(self):
-        pass
+        _project = "TestProject"
+        _integration = "import"
+        _plugin_type = "test-scm-plugin-type"
+        _rv = {"scm": "testScm"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__enable(_project, _integration, _plugin_type, False))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "plugin", _plugin_type, "disable"),
+                data=None,
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
 
     def test_scm_enable__wrong_args(self):
         pass
