@@ -431,3 +431,77 @@ class TestRundeckApi(unittest.TestCase):
         self._rundeck.web.delete.return_value = _rtv
         self.assertEqual(requests.codes.not_found, self._rundeck.project__delete(_project))
         self._rundeck.web.delete.assert_not_called()
+
+    def test_scm_setup__ok_short_json(self):
+        _project = "TestProject"
+        _integration = "import"
+        _plugin_type = "test-scm-plugin-type"
+        _scm_def = {"property": "value"}
+        _expected_data = {"config": {"property": "value"}}
+        _rv = {"scm": "testScm"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__setup(_project, _integration, _plugin_type, _scm_def))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "plugin", _plugin_type, "setup"),
+                data=json.dumps(_expected_data),
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
+
+    def test_scm_setup__ok_full_json(self):
+        _project = "TestProject"
+        _integration = "import"
+        _plugin_type = "test-scm-plugin-type"
+        _scm_def = {"config": {"property": "value"}}
+        _expected_data = _scm_def
+        _rv = {"scm": "testScm"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__setup(_project, _integration, _plugin_type, _scm_def))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "plugin", _plugin_type, "setup"),
+                data=json.dumps(_expected_data),
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
+
+    def test_scm_setup__wrong_args(self):
+        pass
+
+    def test_scm_enable__true(self):
+        pass
+
+    def test_scm_enable__false(self):
+        pass
+
+    def test_scm_enable__wrong_args(self):
+        pass
+
+    def test_scm_get_action_inputs__ok(self):
+        pass
+
+    def test_scm_get_action_inputs__wrong_args(self):
+        pass
+
+    def test_scm__perform_ok(self):
+        pass
+
+    def test_scm__perform_wrong_args(self):
+        pass
+
+    def test_scm_perform_all_actions__import_ok(self):
+        pass
+
+    def test_scm_perform_all_actions__export_ok(self):
+        pass
+    def test_scm_perform_all_actions__wrong_args(self):
+        pass
+
+    def test_scm_status__ok(self):
+        pass
+
+    def test_scm_status__wrong_args(self):
+        pass
