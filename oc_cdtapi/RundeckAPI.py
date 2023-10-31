@@ -331,6 +331,10 @@ class RundeckAPI(HttpAPI):
         :return dict:
         """
         self._logger.info(f"Getting project configuration: [{project}]")
+
+        if not project:
+            raise ValueError("Project name is mandatory")
+
         _req = ["project", project, "config"]
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
