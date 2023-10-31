@@ -469,7 +469,26 @@ class TestRundeckApi(unittest.TestCase):
                 headers=self.__headers, cookies=self.__cookies, params=None, files=None)
 
     def test_scm_setup__wrong_args(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("", "import", "test-scm-plugin-type", {"test": "def"})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", "", "test-scm-plugin-type", {"test": "def"})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", "wrong", "test-scm-plugin-type", {"test": "def"})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", "import", "", {"test": "def"})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", "export", "test-scm-plugin-type", {})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", "import", "test-scm-plugin-type", None)
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__setup("project", ", "test-scm-plugin-type", {"test": "def"})
 
     def test_scm_enable__true(self):
         pass
