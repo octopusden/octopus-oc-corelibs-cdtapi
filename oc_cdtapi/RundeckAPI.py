@@ -310,7 +310,7 @@ class RundeckAPI(HttpAPI):
         self._logger.info(f"Get project info: [{project}]")
 
         if not project:
-            raise ValueEror("Project is mandatory")
+            raise ValueError("Project is mandatory")
 
         _req = ["project", project]
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()

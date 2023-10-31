@@ -210,3 +210,38 @@ class TestRundeckApi(unittest.TestCase):
         self._rundeck.web.delete.return_value=_rtv
         self.assertEqual(requests.codes.not_found, self._rundeck.key_storage__delete("testKey"))
         self._rundeck.web.delete.assert_not_called()
+
+    def test_project__list(self):
+        _rv = ["testProjectList"]
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__list())
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "projects"),
+                headers=self.__headers, cookies=self.__cookies, data=None, params=None, files=None)
+
+    def test_project__info_ok(self):
+        _project = "TestProject"
+        _rv = {"testProjectInfo": _project}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__info(_project))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project),
+                headers=self.__headers, cookies=self.__cookies, data=None, params=None, files=None)
+
+    def test_project__info__wrong_arg(self):
+        _project = "TestProject"
+        _rv = {"testProjectInfo": _project}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        with self.assertRaises(ValueError):
+            self._rundeck.project__info("")
+        self._rundeck.web.get.assert_not_called()
+
