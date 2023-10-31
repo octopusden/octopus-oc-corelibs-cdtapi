@@ -411,3 +411,23 @@ class TestRundeckApi(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._rundeck.project__update(_project_definition)
 
+
+    def test_project__delete_existing(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=True)
+        _project = "testProject"
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.no_content;
+        self._rundeck.web.delete.return_value = _rtv
+        self.assertEqual(requests.codes.no_content, self._rundeck.project__delete(_project))
+        self._rundeck.web.delete.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project),
+                headers=self.__headers, cookies=self.__cookies, data=None, params=None, files=None)
+
+    def test_project__delete_missing(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=False)
+        _project = "testProject"
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.no_content;
+        self._rundeck.web.delete.return_value = _rtv
+        self.assertEqual(requests.codes.not_found, self._rundeck.project__delete(_project))
+        self._rundeck.web.delete.assert_not_called()

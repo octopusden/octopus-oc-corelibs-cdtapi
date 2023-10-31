@@ -369,7 +369,7 @@ class RundeckAPI(HttpAPI):
         elif definition.get("config") and not definition.get("name"):
             self._logger.debug(f"Project [{project}] configuration present but 'name' absent in the dict")
             definition["name"] = project
-        elif definition.get("name"):
+        elif definition.get("name") and not definition.get("config"):
             raise ValueError(f"Project definition has wrong format: 'config' should be specified if 'name' key given")
 
         self._logger.log(5, f"Project definition: {str(definition)}")
