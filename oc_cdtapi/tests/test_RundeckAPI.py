@@ -241,8 +241,10 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.status_code = requests.codes.ok
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         self._rundeck.web.get.return_value = _rtv
+
         with self.assertRaises(ValueError):
             self._rundeck.project__info("")
+
         self._rundeck.web.get.assert_not_called()
 
     def test_project__exists__true(self):
@@ -288,6 +290,107 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.status_code = requests.codes.ok
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         self._rundeck.web.get.return_value = _rtv
+
         with self.assertRaises(ValueError):
             self._rundeck.project__get_configuration("")
+
         self._rundeck.web.get.assert_not_called()
+
+    def test_project__update__new_properties(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=False)
+        _project = "testProject"
+        _project_definition = f"project.name={_project}"
+        _expected_data = {"name": _project, "config": {"project.name": _project}}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "projects"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.put.assert_not_called()
+        
+    def test_project__update__new_short_json(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=False)
+        _project = "testProject"
+        _project_definition = '{"project.name": "%s"}' % _project
+        _expected_data = {"name": _project, "config": {"project.name": _project}}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "projects"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.put.assert_not_called()
+
+    def test_project__update__new_full_json(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=False)
+        _project = "testProject"
+        _project_definition = '{"name": "%s", "config":{"project.someproperty": "somevalue"}}' % _project
+        _expected_data = {"name": _project, "config": {"project.someproperty": "somevalue"}}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "projects"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.put.assert_not_called()
+
+    def test_project__update__existing_properties(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=True)
+        _project = "testProject"
+        _project_definition = f"project.name={_project}"
+        _expected_data = {"project.name": _project}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.put.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.put.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project, "config"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.post.assert_not_called()
+        
+    def test_project__update__existing_short_json(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=True)
+        _project = "testProject"
+        _project_definition = '{"project.name": "%s"}' % _project
+        _expected_data = {"project.name": _project}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.put.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.put.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project, "config"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.post.assert_not_called()
+
+    def test_project__update__existing_full_json(self):
+        self._rundeck.project__exists = unittest.mock.MagicMock(return_value=True)
+        _project = "testProject"
+        _project_definition = '{"name": "%s", "config":{"project.someproperty": "somevalue"}}' % _project
+        _expected_data = {"project.someproperty": "somevalue"}
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.put.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__update(_project_definition))
+        self._rundeck.web.put.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project, "config"),
+                headers=self.__headers, cookies=self.__cookies, data=json.dumps(_expected_data), params=None, files=None)
+        self._rundeck.web.post.assert_not_called()
+
+    def test_project__update__wrong_arg(self):
+        pass
