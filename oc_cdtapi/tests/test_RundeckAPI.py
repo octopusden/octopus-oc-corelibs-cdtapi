@@ -268,3 +268,26 @@ class TestRundeckApi(unittest.TestCase):
         self._rundeck.web.get.assert_called_once_with(
                 posixpath.join(self._url, "api", str(self._api_version), "project", _project),
                 headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
+
+    def test_project__config_ok(self):
+        _project = "TestProject"
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.project__get_configuration(_project))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project, "config"),
+                headers=self.__headers, cookies=self.__cookies, data=None, params=None, files=None)
+
+    def test_project__config__wrong_arg(self):
+        _project = "TestProject"
+        _rv = {"testProjectName": _project, "configuration": "testConfiguration"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        with self.assertRaises(ValueError):
+            self._rundeck.project__get_configuration("")
+        self._rundeck.web.get.assert_not_called()
