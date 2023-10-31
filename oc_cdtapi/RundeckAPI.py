@@ -366,7 +366,7 @@ class RundeckAPI(HttpAPI):
         if all(list(map(lambda _x: not definition.get(_x), ["name", "config"]))):
             self._logger.debug(f"Both 'configuration' and 'name' absent in the definition, appending all")
             definition={"name": project, "config": definition}
-        elif definition.get("config"):
+        elif definition.get("config") and not definition.get("name"):
             self._logger.debug(f"Project [{project}] configuration present but 'name' absent in the dict")
             definition["name"] = project
         elif definition.get("name"):
