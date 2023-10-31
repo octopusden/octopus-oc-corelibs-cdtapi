@@ -488,7 +488,7 @@ class TestRundeckApi(unittest.TestCase):
             self._rundeck.scm__setup("project", "import", "test-scm-plugin-type", None)
 
         with self.assertRaises(ValueError):
-            self._rundeck.scm__setup("project", ", "test-scm-plugin-type", {"test": "def"})
+            self._rundeck.scm__setup(None, "export", "test-scm-plugin-type", {"test": "def"})
 
     def test_scm_enable__true(self):
         pass
