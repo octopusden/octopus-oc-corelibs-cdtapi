@@ -500,7 +500,7 @@ class RundeckAPI(HttpAPI):
 
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def scm__perform(self, project, integration, action, action_data):
+    def scm__action_perform(self, project, integration, action, action_data):
         """
         SCM import/export all project items
         :param str project: project name
@@ -525,10 +525,11 @@ class RundeckAPI(HttpAPI):
 
         if not action:
             raise ValueError("Action is mandatory")
-        
+
         _req = ["project", project, "scm", integration, "action", action]
 
         return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(action_data)).json()
+
     def scm__perform_all_actions(self, project, integration, action, commit_message=None):
         """
         SCM import/export all project items
@@ -573,7 +574,7 @@ class RundeckAPI(HttpAPI):
                                            list(filter(lambda x: x.get("deleted"), _action_inputs.get(_section)))))))
 
         self._logger.debug(f"Action data dict: {_rq_data}")
-        return self.scm__perform(project, integration, action, _rq_data)
+        return self.scm__action_perform(project, integration, action, _rq_data)
 
 
     def scm__status(self, project, integration):

@@ -536,22 +536,78 @@ class TestRundeckApi(unittest.TestCase):
             self._rundeck.scm__enable("project", "export", "", False)
 
     def test_scm_get_action_inputs__ok(self):
-        pass
+        _project = "TestProject"
+        _integration = "import"
+        _action = "doSomething"
+        _rv = {"scmAction": "testScmActionImportJob"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__get_action_inputs(_project, _integration, _action))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "action", _action, "input"),
+                data=None,
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
 
     def test_scm_get_action_inputs__wrong_args(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__get_action_inputs("", "import", "import-job")
 
-    def test_scm__perform_ok(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__get_action_inputs("", "export", "import-job")
 
-    def test_scm__perform_wrong_args(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__get_action_inputs("project", "", "import-job")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__get_action_inputs("project", "wrong", "import-job")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__get_action_inputs("project", "wrong", "")
+
+    def test_scm__action_perform_ok(self):
+        _action_data = {"actionItem": ["testActionItem"]}
+        _project = "TestProject"
+        _integration = "import"
+        _action = "doSomething"
+        _rv = {"scmAction": "testScmActionPerform"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.post.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__action_perform(_project, _integration, _action, _action_data))
+        self._rundeck.web.post.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "action", _action),
+                data=json.dumps(_action_data),
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
+
+    def test_scm__action_perform_wrong_args(self):
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__action_perform("", "import", "doSomething", {"items": ["testItem"]})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__action_perform(None, "export", "doSomething", {"items": ["testItem"]})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__action_perform("project", "", "doSomething", {"items": ["testItem"]})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__action_perform("project", "wrong", "doSomething", {"items": ["testItem"]})
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__action_perform("project", "import", "", {"items": ["testItem"]})
+
+        self.assertEqual(dict(), self._rundeck.scm__action_perform("project", "export", "doSomething", {}))
 
     def test_scm_perform_all_actions__import_ok(self):
         pass
 
     def test_scm_perform_all_actions__export_ok(self):
         pass
+
     def test_scm_perform_all_actions__wrong_args(self):
         pass
 
