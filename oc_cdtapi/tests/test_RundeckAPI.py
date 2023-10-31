@@ -603,13 +603,57 @@ class TestRundeckApi(unittest.TestCase):
         self.assertEqual(dict(), self._rundeck.scm__action_perform("project", "export", "doSomething", {}))
 
     def test_scm_perform_all_actions__import_ok(self):
-        pass
+        _project = "TestProject"
+        _rv_pfm = {"status": "ok"}
+        _commit_msg = ""
+        _rv_inpts = {
+                "importItems": [
+                    {"itemId": "testUpdatedJob", "deleted": False, "job": {"jobId": "testUpdatedJobId"}},
+                    {"itemId": "testDeletedJob", "deleted": True, "job": {"jobId": "testDeletedJobId"}}]}
+        _expected_data = {
+                "jobs": list(),
+                "items": ["testUpdatedJob"],
+                "deleted": list(),
+                "deletedJobs": ["testDeletedJobId"]}
+        self._rundeck.scm__action_perform = unittest.mock.MagicMock(return_value=_rv_pfm)
+        self._rundeck.scm__get_action_inputs = unittest.mock.MagicMock(return_value=_rv_inpts)
+        self.assertEqual(_rv_pfm, self._rundeck.scm__perform_all_actions(_project, "import", "doSomething", _commit_msg))
+        self._rundeck.scm__action_perform.assert_called_once_with(_project, "import", "doSomething", _expected_data)
 
     def test_scm_perform_all_actions__export_ok(self):
-        pass
+        _project = "TestProject"
+        _rv_pfm = {"status": "ok"}
+        _commit_msg = "testCommitMessage"
+        _rv_inpts = {
+                "exportItems": [
+                    {"itemId": "testUpdatedJob", "deleted": False, "job": {"jobId": "testUpdatedJobId"}},
+                    {"itemId": "testDeletedJob", "deleted": True, "job": {"jobId": "testDeletedJobId"}}]}
+        _expected_data = {
+                "jobs": list(),
+                "items": ["testUpdatedJob"],
+                "deleted": ["testDeletedJob"],
+                "deletedJobs": list(),
+                "input": {"message": _commit_msg}}
+        self._rundeck.scm__action_perform = unittest.mock.MagicMock(return_value=_rv_pfm)
+        self._rundeck.scm__get_action_inputs = unittest.mock.MagicMock(return_value=_rv_inpts)
+        self.assertEqual(_rv_pfm, self._rundeck.scm__perform_all_actions(_project, "export", "doSomething", _commit_msg))
+        self._rundeck.scm__action_perform.assert_called_once_with(_project, "export", "doSomething", _expected_data)
 
     def test_scm_perform_all_actions__wrong_args(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__perform_all_actions("", "export", "doSomething")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__perform_all_actions(None, "import", "doSomething")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__perform_all_actions("project", "", "doSomething")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__perform_all_actions("project", "wrong", "doSomething")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__perform_all_actions("project", "wrong", "")
 
     def test_scm_status__ok(self):
         pass
