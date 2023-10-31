@@ -254,7 +254,7 @@ class TestRundeckApi(unittest.TestCase):
         self._rundeck.web.get.return_value=_rtv
         self.assertTrue(self._rundeck.project__exists(_project))
         self._rundeck.web.get.assert_called_once_with(
-                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project),
                 headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
 
     def test_project__exists__false(self):
@@ -264,7 +264,7 @@ class TestRundeckApi(unittest.TestCase):
         _rtv.json = unittest.mock.MagicMock(return_value=_rv)
         _rtv.status_code = requests.codes.not_found
         self._rundeck.web.get.return_value=_rtv
-        self.assertFalse(self._rundeck.Project__exists(_project))
+        self.assertFalse(self._rundeck.project__exists(_project))
         self._rundeck.web.get.assert_called_once_with(
-                posixpath.join(self._url, "api", str(self._api_version), "storage", "keys", "simplepath"),
+                posixpath.join(self._url, "api", str(self._api_version), "project", _project),
                 headers = self.__headers, cookies = self.__cookies, params=None, data=None, files=None)
