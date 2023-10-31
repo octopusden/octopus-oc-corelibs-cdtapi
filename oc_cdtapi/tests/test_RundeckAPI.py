@@ -656,7 +656,29 @@ class TestRundeckApi(unittest.TestCase):
             self._rundeck.scm__perform_all_actions("project", "wrong", "")
 
     def test_scm_status__ok(self):
-        pass
+        _project = "TestProject"
+        _integration = "import"
+        _rv = {"scmActionStatus": "testScmActionStatus"}
+        _rtv = unittest.mock.MagicMock()
+        _rtv.status_code = requests.codes.ok
+        _rtv.json = unittest.mock.MagicMock(return_value=_rv)
+        self._rundeck.web.get.return_value = _rtv
+        self.assertEqual(_rv, self._rundeck.scm__status(_project, _integration))
+        self._rundeck.web.get.assert_called_once_with(
+                posixpath.join(self._url, "api", str(self._api_version), 
+                    "project", _project, "scm", _integration, "status"),
+                data=None,
+                headers=self.__headers, cookies=self.__cookies, params=None, files=None)
 
     def test_scm_status__wrong_args(self):
-        pass
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__status("project", "")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__status("project", "wrong")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__status("", "import")
+
+        with self.assertRaises(ValueError):
+            self._rundeck.scm__status(None, "export")
