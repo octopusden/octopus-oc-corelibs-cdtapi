@@ -357,7 +357,7 @@ class RundeckAPI(HttpAPI):
         :return dict:
         """
         self._logger.info(" ".join([
-            "Upating project configuration:"
+            "Upating project configuration:",
             f"type of [project_configuration]: [{type(project_configuration)}]"]))
 
         self.__check_args(project_configuration=project_configuration)
@@ -475,7 +475,7 @@ class RundeckAPI(HttpAPI):
         :return dict:
         """
         self._logger.info(" ".join([
-            f"Get SCM scm_actions input list for project [{project}],"
+            f"Get SCM scm_actions input list for project [{project}],",
             f"scm_integration [{scm_integration}], scm_action [{scm_action}]"]))
 
         # checking arguments
@@ -495,7 +495,7 @@ class RundeckAPI(HttpAPI):
         :return dict:
         """
         self._logger.info(" ".join([
-            f"Perform SCM scm_actions for project [{project}],"
+            f"Perform SCM scm_actions for project [{project}],",
             f"scm_integration [{scm_integration}], scm_action [{scm_action}].",
             f"Action data: {scm_action_data}"]))
 
