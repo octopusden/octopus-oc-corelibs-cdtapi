@@ -35,9 +35,29 @@ class RundeckAPI(HttpAPI):
         # base class stores these two into web session auth, but it is useless for Rundeck
         self._user = user
         self._password = password
+        self.__args_supported_values = {"scm_integration": ["import", "export"]}
 
         super().__init__(root=url, user=user, auth=password)
         self._auth_cookie = None
+
+    def __check_args(self, **kwargs):
+        """
+        Check if integration arguments are given. Has no return value but raises ValueError if
+        something goes wrong
+        :param kwargs: other mandatory keyword arguments to be checked for 'positive' value
+        """
+
+        for (_k, _v) in kwargs.items():
+            if not _v:
+                raise ValueError(f"[{_k}] is mandatory.")
+            
+            _supported_values = self.__args_supported_values.get(_k)
+
+            if not _supported_values:
+                continue
+
+            if _v not in _supported_values:
+                raise ValueError(f"Unsupported value for [{_k}]: [{_v}]. Should be one of: {_supported_values}")
 
     def _to_dict(self, object_d):
         """
@@ -65,6 +85,9 @@ class RundeckAPI(HttpAPI):
             self._logger.info("Unable to decode definition as [JSON] object, parsing as .properties")
             pass
 
+        # All existing .properties parsers are too complex and not usable for our case, because of
+        # Rundeck specific: all values have to be strings, regardless of their actual type.
+        # That is: boolean values, for example, should be "true" or "false", not True or False
         _result = dict()
         for _line in list(map(lambda x: x.strip(), object_d.splitlines())):
             if not _line:
@@ -121,7 +144,7 @@ class RundeckAPI(HttpAPI):
         self.raise_exception_high = 999
         _response = self.web.get(super().re(["api", "unsupported"]), headers={
             'Content-type': 'application/json', "Accept": 'application/json'})
-        self._logger.debug(f"Response for API: {_response.json()}")
+        self._logger.log(5, f"Response for API: {_response.json()}")
         # restore exceptions raising
         self.raise_exception_low, self.raise_exception_high = _tmp_exceptions
         self._api_version = _response.json().get("apiversion")
@@ -150,12 +173,11 @@ class RundeckAPI(HttpAPI):
         self._logger.info("Try to obtain auth cookie...")
         _rq_params = {"j_username": self._user, "j_password": self._password}
         _response = self.web.post(super().re(["j_security_check"]), data=_rq_params, allow_redirects=True)
-        self._logger.debug(f"Authorization response: {_response.status_code}")
-
-        #we should filter all redirects in the history and check where we are redirected to
+        self._logger.log(5, f"Authorization response: {_response.status_code}")
         _response.raise_for_status()
 
-        # the auth was successful if all redirects in the chain does not lead to $RUNDECK_SERVER_URL/user/error
+        #we should filter all redirects in the history and check where we are redirected to
+        # the auth was successful if final redirect does not lead to $RUNDECK_SERVER_URL/user/error
         # see https://docs.rundeck.com/docs/api/rundeck-api.html#password-authentication for details
         self._logger.debug(f"Response final url: {_response.url}")
         _auth_success = not _response.url.endswith(posixpath.join("user", "error"))
@@ -168,7 +190,7 @@ class RundeckAPI(HttpAPI):
                     resp=_response,
                     text="User-Password authentication failed")
 
-        # the lates cookie is the actual one, we should get it
+        # the latest cookie is the actual one, we should get it
         _t = list(_response.history).pop(0).cookies
         self._auth_cookie = dict((_x, _t.get(_x)) for _x in ["JSESSIONID"])
         self._logger.info("Auth cookie obtained")
@@ -178,7 +200,7 @@ class RundeckAPI(HttpAPI):
         Append request URL with appendix given to get rid of TypeError
         :param str req: a source request
         :param str apnd: appendix
-        :return list:
+        :return list:https://github.com/octopusden/octopus-di-rundeck/pull/4
         """
 
         if not isinstance(req, list):
@@ -199,19 +221,19 @@ class RundeckAPI(HttpAPI):
         req = self.__append_path_list(["api", str(self.api_version)], req)
         return super().re(req)
 
-    def key_storage__list(self, path=None):
+    def key_storage__list(self, key_path=None):
         """
         list internal KeyStorage content
-        also provides metadata if 'path' specifies a key
-        :param str path: internal path to list
-        :return dict: a dictionary with list of "resources" with all keys metadata if "path" not given
-        :return dict: a dictionary with direct key metadata if single key given as "path"
+        also provides metadata if 'key_path' specifies a key
+        :param str key_path: internal key_path to list
+        :return dict: a dictionary with list of "resources" with all keys metadata if "key_path" not given
+        :return dict: a dictionary with direct key metadata if single key given as "key_path"
         """
-        self._logger.info(f"Listing keys, path: [{path}]")
+        self._logger.info(f"Listing keys, key_path: [{key_path}]")
         _req = ["storage", "keys"]
 
-        if path:
-            _req = self.__append_path_list(_req, path)
+        if key_path:
+            _req = self.__append_path_list(_req, key_path)
 
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
@@ -226,37 +248,30 @@ class RundeckAPI(HttpAPI):
 
         return True
 
-    def key_storage__exists(self, path):
+    def key_storage__exists(self, key_path):
         """
         Check if key exists
-        :param str path: internal Rundeck path to the key to check
+        :param str key_path: internal Rundeck key_path to the key to check
         :return bool:
         """
-        self._logger.info(f"Check key exists: [{path}]")
-        return self.__object_exists(self.key_storage__list, path)
+        self._logger.info(f"Check key exists: [{key_path}]")
+        return self.__object_exists(self.key_storage__list, key_path)
 
-    def key_storage__upload(self, path, key_type, content):
+    def key_storage__upload(self, key_path, key_type, key_data):
         """
         Create or update a key
-        :param str path: internal KeyStorage path
+        :param str key_path: internal KeyStorage key_path
         :param str key_type: type of key. May be set as 'application/xxx' directly or via aliases supported:
                              private, public, password
-        :param bytes content: bytes array provides a password
+        :param bytes key_data: bytes array provides a password
         :return dict:
         """
-        self._logger.info(f"Try to upload key [{path}], type [{key_type}]")
-        if not path:
-            raise ValueError("Key path is mandatory")
-
-        if not key_type:
-            raise ValueError("Key type is mandatory")
-
-        if not content:
-            raise ValueError("Key content is mandatory")
+        self._logger.info(f"Try to upload key [{key_path}], type [{key_type}]")
+        self.__check_args(key_path=key_path, key_type=key_type, key_data=key_data)
 
         # if key exists then we should update its conkey_storage__listtent using PUT method
         # otherwise we have to create new one using POST method
-        _req = self.__append_path_list(["storage", "keys"], path)
+        _req = self.__append_path_list(["storage", "keys"], key_path)
         _headers = self.headers
 
         # key type should be one of: 
@@ -272,23 +287,23 @@ class RundeckAPI(HttpAPI):
         key_type = __keytype_map.get(key_type, key_type)
         self._logger.debug(f"Key type after adjustment: [{key_type}]")
         _headers["Content-type"] = key_type
-        _method = self.put if self.key_storage__exists(path) else self.post
-        return _method(req=_req, headers=_headers, cookies=self.cookies, data=content).json()
+        _method = self.put if self.key_storage__exists(key_path) else self.post
+        return _method(req=_req, headers=_headers, cookies=self.cookies, data=key_data).json()
 
-    def key_storage__delete(self, path):
+    def key_storage__delete(self, key_path):
         """
         Delete a key if exists
-        :param str path: path to a key to remove
+        :param str key_path: key_path to a key to remove
         :return int:
         """
-        self._logger.info(f"Deleting key: [{path}]")
+        self._logger.info(f"Deleting key: [{key_path}]")
 
-        # check exists - to get rid of raising HTTP 404 error
-        if not self.key_storage__exists(path):
-            self._logger.debug(f"{path} does not exist")
+        # check exists - to get rid of raising HTTP 404 error as an unwanted exception
+        if not self.key_storage__exists(key_path):
+            self._logger.debug(f"{key_path} does not exist")
             return requests.codes.not_found
 
-        _req = self.__append_path_list(["storage", "keys"], path)
+        _req = self.__append_path_list(["storage", "keys"], key_path)
         return self.delete(_req, headers=self.headers, cookies=self.cookies).status_code
 
     def project__list(self):
@@ -308,10 +323,7 @@ class RundeckAPI(HttpAPI):
         :return dict: dictionary with single project information if one specified
         """
         self._logger.info(f"Get project info: [{project}]")
-
-        if not project:
-            raise ValueError("Project is mandatory")
-
+        self.__check_args(project=project)
         _req = ["project", project]
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
@@ -331,48 +343,43 @@ class RundeckAPI(HttpAPI):
         :return dict:
         """
         self._logger.info(f"Getting project configuration: [{project}]")
-
-        if not project:
-            raise ValueError("Project name is mandatory")
-
+        self.__check_args(project=project)
         _req = ["project", project, "config"]
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def project__update(self, definition):
+    def project__update(self, project_configuration):
         """
         Create or update project
-        :param BufferIO definition: file-like object for project definition
-        :param str definition: project definition as read of 'project.properties' file
-        :param dict definition: project definition dictionary {"propname":"propvalue", ...}
-        :param _io.TextIOWrapper definition: project definition file-like object
+        :param BufferIO project_configuration: file-like object for project project_configuration
+        :param str project_configuration: project project_configuration as read of 'project.properties' file
+        :param dict project_configuration: project project_configuration dictionary {"propname":"propvalue", ...}
+        :param _io.TextIOWrapper project_configuration: project project_configuration file-like object
         :return dict:
         """
-        self._logger.info(f"Upating project configuration: type of definition: [{type(definition)}]")
+        self._logger.info(" ".join([
+            "Upating project configuration:"
+            f"type of [project_configuration]: [{type(project_configuration)}]"]))
 
-        if not definition:
-            raise ValueError("Project definition is mandatory")
-
-        definition = self._to_dict(definition)
-        project = definition.get("project.name") or \
-                definition.get("name") or \
-                definition.get("config", dict()).get("project.name")
+        self.__check_args(project_configuration=project_configuration)
+        project_configuration = self._to_dict(project_configuration)
+        project = project_configuration.get("project.name") or \
+                project_configuration.get("name") or \
+                project_configuration.get("config", dict()).get("project.name")
 
         self._logger.info(f"Project name: [{project}]")
-
-        if not project:
-            raise ValueError("Project name is not specified in the definition")
+        self.__check_args(project=project)
 
         # prepare project name and configuration
-        if all(list(map(lambda _x: not definition.get(_x), ["name", "config"]))):
-            self._logger.debug(f"Both 'configuration' and 'name' absent in the definition, appending all")
-            definition={"name": project, "config": definition}
-        elif definition.get("config") and not definition.get("name"):
-            self._logger.debug(f"Project [{project}] configuration present but 'name' absent in the dict")
-            definition["name"] = project
-        elif definition.get("name") and not definition.get("config"):
-            raise ValueError(f"Project definition has wrong format: 'config' should be specified if 'name' key given")
+        if all(list(map(lambda _x: not project_configuration.get(_x), ["name", "config"]))):
+            self._logger.debug(f"Both 'configuration' and 'name' absent in the Project configuration, appending all")
+            project_configuration={"name": project, "config": project_configuration}
+        elif project_configuration.get("config") and not project_configuration.get("name"):
+            self._logger.debug(f"Project [{project}] configuration present but 'name' absent")
+            project_configuration["name"] = project
+        elif project_configuration.get("name") and not project_configuration.get("config"):
+            raise ValueError(f"Project configuration is wrong: 'config' should be specified if 'name' key given")
 
-        self._logger.log(5, f"Project definition: {str(definition)}")
+        self._logger.log(5, f"Project configuration: {str(project_configuration)}")
 
         # if project exists - perform an update
         # create new one otherwise
@@ -381,12 +388,13 @@ class RundeckAPI(HttpAPI):
             self._logger.info(f"Project [{project}] exists, performing an update...")
             return self.put(
                 ["project", project, "config"],
-                data=json.dumps(definition.get("config")),
+                data=json.dumps(project_configuration.get("config")),
                 headers=self.headers,
                 cookies=self.cookies).json()
 
         self._logger.info(f"Project [{project}] does not exist, creating new one")
-        return self.post("projects", data=json.dumps(definition), headers=self.headers, cookies=self.cookies).json()
+        return self.post("projects", data=json.dumps(project_configuration),
+                         headers=self.headers, cookies=self.cookies).json()
 
     def project__delete(self, project):
         """
@@ -395,175 +403,149 @@ class RundeckAPI(HttpAPI):
         :return int: status code
         """
         self._logger.info(f"Deleting project [{project}]")
+        self.__check_args(project=project)
 
-        if not project:
-            raise ValueError("Project name is mandatory")
-
-        # check exists - to get rid of raising HTTP 404 error
+        # check exists - to get rid of raising HTTP 404 error as an unwanted exception
         if not self.project__exists(project):
             self._logger.debug(f"{project} does not exist")
             return requests.codes.not_found
 
         return self.delete(["project", project], headers=self.headers, cookies=self.cookies).status_code
 
-    def scm__setup(self, project, integration, plugin_type, definition):
+
+    def scm__setup(self, project, scm_integration, scm_plugin_type, scm_configuration):
         """
         Setup SCM for a project
         :param str project: project name
-        :param str integration: one of: "import", "export"
-        :param str plugin_type: plugin to configure
-        :param str definition: string with SCM parameters
-        :param dict definition: dictionary with SCM parameters
-        :param _io.TextIOWrapper definition: file-like object with SCM parameters opened in string mode
+        :param str scm_integration: one of: "import", "export"
+        :param str scm_plugin_type: plugin to configure
+        :param str scm_configuration: string with SCM parameters
+        :param dict scm_configuration: dictionary with SCM parameters
+        :param _io.TextIOWrapper scm_configuration: file-like object with SCM parameters opened in string mode
         :return dict:
         """
         self._logger.info(" ".join([
             "Upating project SCM configuration:",
-            f"project: [{project}], integration: [{integration}], plugin_type: [{plugin_type}]",
-            f"type of definition: [{type(definition)}]"]))
+            f"project: [{project}], scm_integration: [{scm_integration}], scm_plugin_type: [{scm_plugin_type}]",
+            f"type of scm_configuration: [{type(scm_configuration)}]"]))
 
         # checking arguments
-        if not definition:
-            raise ValueError("SCM definition is mandatory")
-
-        if not project:
-            raise ValueError("Project name is mandatory")
-
-        if integration not in ["import", "export"]:
-            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
-
-        if not plugin_type:
-            raise ValueError("Plugin type is mandatory")
-        
-        definition = self._to_dict(definition)
+        self.__check_args(project=project, scm_integration=scm_integration,
+                          scm_plugin_type=scm_plugin_type, scm_configuration=scm_configuration)
+        scm_configuration = self._to_dict(scm_configuration)
 
         # configuration may be outside of a dict
-        if not definition.get("config"):
-            definition = {"config": definition}
+        if not scm_configuration.get("config"):
+            scm_configuration = {"config": scm_configuration}
 
-        self._logger.log(5, f"Final definition is: [{definition}]")
+        self._logger.log(5, f"Final [scm_configuration]: [{scm_configuration}]")
 
-        _req = ["project", project, "scm", integration, "plugin", plugin_type, "setup"]
+        _req = ["project", project, "scm", scm_integration, "plugin", scm_plugin_type, "setup"]
 
-        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(definition)).json()
+        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(scm_configuration)).json()
 
-    def scm__enable(self, project, integration, plugin_type, enable=False):
+    def scm__enable(self, project, scm_integration, scm_plugin_type, enable=False):
         """
         Turn on/off SCM for a project
         :param str project: project name
-        :param str integration: one of: "import", "export"
-        :param str plugin_type: plugin to configure
+        :param str scm_integration: one of: "import", "export"
+        :param str scm_plugin_type: plugin to configure
         :param bool enable: disable if set to False, enable otherwise
         :return dict:
         """
         self._logger.info(
                 " ".join([
                     'Enable' if enable else 'Disable',
-                    f"SCM for project [{project}], integration [{integration}], plugin_type [{plugin_type}]"]))
+                    f"SCM for project [{project}], scm_integration [{scm_integration}],",
+                    f"scm_plugin_type [{scm_plugin_type}]"]))
 
         # checking arguments
-        if not project:
-            raise ValueError("Project name is mandatory")
+        self.__check_args(project=project, scm_integration=scm_integration, scm_plugin_type=scm_plugin_type)
 
-        if integration not in ["import", "export"]:
-            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
-
-        if not plugin_type:
-            raise ValueError("Plugin type is mandatory")
-        
-        _req = ["project", project, "scm", integration, "plugin", plugin_type, "enable" if enable else "disable"]
+        _req = ["project", project, "scm", scm_integration, "plugin", scm_plugin_type, "enable" if enable else "disable"]
 
         return self.post(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def scm__get_action_inputs(self, project, integration, action):
+    def scm__get_action_inputs(self, project, scm_integration, scm_action):
         """
-        Get items needed to be performed actions on
+        Get items needed to be performed scm_actions on
         :param str project: project name
-        :param str integration: one of: "import", "export"
-        :param str action: action to perform
+        :param str scm_integration: one of: "import", "export"
+        :param str scm_action: scm_action to perform
         :return dict:
         """
-        self._logger.info(
-                f"Get SCM actions input list for project [{project}], integration [{integration}], action [{action}]")
+        self._logger.info(" ".join([
+            f"Get SCM scm_actions input list for project [{project}],"
+            f"scm_integration [{scm_integration}], scm_action [{scm_action}]"]))
 
         # checking arguments
-        if not project:
-            raise ValueError("Project name is mandatory")
+        self.__check_args(project=project, scm_integration=scm_integration, scm_action=scm_action)
 
-        if integration not in ["import", "export"]:
-            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
-
-        if not action:
-            raise ValueError("Action is mandatory")
-        
-        _req = ["project", project, "scm", integration, "action", action, "input"]
+        _req = ["project", project, "scm", scm_integration, "action", scm_action, "input"]
 
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
 
-    def scm__action_perform(self, project, integration, action, action_data):
+    def scm__action_perform(self, project, scm_integration, scm_action, scm_action_data):
         """
         SCM import/export all project items
         :param str project: project name
-        :param str integration: one of: "import", "export"
-        :param str action: action to perform
-        :param dict action_data: what to do
+        :param str scm_integration: one of: "import", "export"
+        :param str scm_action: scm_action to perform
+        :param dict scm_action_data: what to do
         :return dict:
         """
-        self._logger.info(" ".join([f"Perform SCM actions for project [{project}], integration [{integration}], action [{action}].",
-                                    f"Action data: {action_data}"]))
+        self._logger.info(" ".join([
+            f"Perform SCM scm_actions for project [{project}],"
+            f"scm_integration [{scm_integration}], scm_action [{scm_action}].",
+            f"Action data: {scm_action_data}"]))
 
-        if not action_data:
-            self._logger.info(f"Emtpy action data, nothing to do")
+        if not scm_action_data:
+            self._logger.info(f"Emtpy scm_action data, nothing to do")
             return dict()
 
         # checking arguments
-        if not project:
-            raise ValueError("Project name is mandatory")
+        self.__check_args(project=project, scm_integration=scm_integration, scm_action=scm_action)
 
-        if integration not in ["import", "export"]:
-            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
+        _req = ["project", project, "scm", scm_integration, "action", scm_action]
 
-        if not action:
-            raise ValueError("Action is mandatory")
+        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(scm_action_data)).json()
 
-        _req = ["project", project, "scm", integration, "action", action]
-
-        return self.post(_req, headers=self.headers, cookies=self.cookies, data=json.dumps(action_data)).json()
-
-    def scm__perform_all_actions(self, project, integration, action, commit_message=None):
+    def scm__perform_all_actions(self, project, scm_integration, scm_action, commit_message=None):
         """
         SCM import/export all project items
         :param str project: project name
-        :param str integration: one of: "import", "export"
-        :param str action: action to perform
+        :param str scm_integration: one of: "import", "export"
+        :param str scm_action: scm_action to perform
         :param str commit_message: required to do "export-jobs" or so on
         :return dict:
         """
         # arguments checking is done in the sub-method
-        self._logger.info(f"Perform all SCM actions for project [{project}], integration [{integration}], action [{action}]")
+        self._logger.info(" ".join([
+            f"Perform all SCM scm_actions for project [{project}],",
+            f"scm_integration [{scm_integration}], scm_action [{scm_action}]"]))
 
-        _action_inputs = self.scm__get_action_inputs(project, integration, action)
+        _scm_action_inputs = self.scm__get_action_inputs(project, scm_integration, scm_action)
         _rq_data = dict()
 
         if commit_message:
             _rq_data = {"input": {"message": commit_message}}
 
-        # collect data basing on _action_inputs
+        # collect data basing on _scm_action_inputs
         # fields needed: 
         ## "jobs" - imprt/export for jobIds, actually useless
         ## "items" - itemId-s to be imported/exported
-        ## "deleted" - itemIds to be deleted on "export" integration
-        ## "deletedJobs" - jobIds to be deleted on "import" integration
-        _section = f"{integration}Items"
+        ## "deleted" - itemIds to be deleted on "export" scm_integration
+        ## "deletedJobs" - jobIds to be deleted on "import" scm_integration
+        _section = f"{scm_integration}Items"
         self._logger.debug(f"Filtering and mapping section [{_section}]")
         _rq_data["jobs"] = list()
         # absence of "itemId" key on RunDeck response is a crime, exception should be raised
-        _rq_data["items"] = list(map(lambda x: x["itemId"], 
-                                     list(filter(lambda x: not x.get("deleted"), _action_inputs.get(_section)))))
+        _rq_data["items"] = list(map(lambda x: x["itemId"],
+                                     list(filter(lambda x: not x.get("deleted"), _scm_action_inputs.get(_section)))))
 
-        if integration == "export":
+        if scm_integration == "export":
             _rq_data["deleted"] = list(map(lambda x: x["itemId"], 
-                                        list(filter(lambda x: x.get("deleted"), _action_inputs.get(_section)))))
+                                        list(filter(lambda x: x.get("deleted"), _scm_action_inputs.get(_section)))))
             _rq_data["deletedJobs"] = list()
         else:
             _rq_data["deleted"] = list()
@@ -571,29 +553,25 @@ class RundeckAPI(HttpAPI):
             # no need to do import/deletion then
             _rq_data["deletedJobs"] = list(filter(lambda x: bool(x),
                                         list(map(lambda x: x.get("job", dict()).get("jobId"),
-                                           list(filter(lambda x: x.get("deleted"), _action_inputs.get(_section)))))))
+                                           list(filter(lambda x: x.get("deleted"), _scm_action_inputs.get(_section)))))))
 
         self._logger.debug(f"Action data dict: {_rq_data}")
-        return self.scm__action_perform(project, integration, action, _rq_data)
+        return self.scm__action_perform(project, scm_integration, scm_action, _rq_data)
 
 
-    def scm__status(self, project, integration):
+    def scm__status(self, project, scm_integration):
         """
         Get SCM plugin status for a project
         :param str project: project name
-        :param str integration: one of: "import", "export"
+        :param str scm_integration: one of: "import", "export"
         :return dict:
         """
         self._logger.info(
-                f"Get SCM status for project [{project}], integration [{integration}]")
+                f"Get SCM status for project [{project}], scm_integration [{scm_integration}]")
 
         # checking arguments
-        if not project:
-            raise ValueError("Project name is mandatory")
+        self.__check_args(project=project, scm_integration=scm_integration)
 
-        if integration not in ["import", "export"]:
-            raise ValueError(f"Unsupported SCM integration type: [{integration}]")
-
-        _req = ["project", project, "scm", integration, "status"]
+        _req = ["project", project, "scm", scm_integration, "status"]
 
         return self.get(_req, headers=self.headers, cookies=self.cookies).json()
