@@ -70,15 +70,15 @@ class TestJenkinsClient( Jenkins ):
     queue_data = { "items":
                 [   {"actions":[
                         {"causes":[{"shortDescription":"Started by an SCM change"},{"shortDescription":"Started by an SCM change"}]},
-                        {"parameters":[{"name":"OWS_HOME","value":"/local/homes/ows_home"},{"name":"action","value":"reinstall"},{"name":"version","value":"default"}]}],
+                        {"parameters":[{"name":"HOME","value":"/local/homes/ows_home"},{"name":"action","value":"reinstall"},{"name":"version","value":"default"}]}],
                     "blocked":True,
                     "buildable":False,
                     "id":9590,
                     "inQueueSince":1542791418408,
-                    "params":"\nOWS_HOME=/local/homes/ows_home\naction=reinstall\nversion=default",
+                    "params":"\nHOME=/local/homes/ows_home\naction=reinstall\nversion=default",
                     "stuck":False,
-                    "task":{    "name":"c.OWI_LUXCTRL.branches-int.cards",
-                                "url":"http://localhost:8080/job/c.OWI_LUXCTRL.branches-int.cards/",
+                    "task":{    "name":"c.TEST_CUSTOMER.branches-int.cards",
+                                "url":"http://localhost:8080/job/c.TEST_CUSTOMER.branches-int.cards/",
                                 "color":"red_anime" },
                     "url":"queue/item/9590/",
                     "why":"Build 9589 is in progress",
@@ -674,7 +674,7 @@ class JobTestSuite( unittest.TestCase ):
         result = TestJenkinsClient().list_queue();
         self.assertEqual( len( result ), 2 );
         jobnames = map( lambda x: x.job_name, result );
-        self.assertIn( "c.OWI_LUXCTRL.branches-int.cards", jobnames );
+        self.assertIn( "c.TEST_CUSTOMER.branches-int.cards", jobnames );
         self.assertIn( "tech.selfcheck", jobnames );
         jobids = map( lambda x: x.queue_id, result );
         self.assertIn( 9590, jobids);
