@@ -170,7 +170,7 @@ class TestDmsGetverAPI (unittest.TestCase):
     def test_create_distr_request_full (self):
         da = _DmsGetverAPI ()
         version = '09.99.99.99'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         distr_state_info = da.create_distr_request (version = version, distr_type = distr_type, client_filter = client_filter)
         state = distr_state_info ['state']
@@ -181,7 +181,7 @@ class TestDmsGetverAPI (unittest.TestCase):
         da = _DmsGetverAPI ()
         source_version = '08.88.88.88'
         version = '09.99.99.99'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         distr_state_info = da.create_distr_request (version = version, source_version = source_version, distr_type = distr_type, client_filter = client_filter)
         state = distr_state_info ['state']
@@ -192,7 +192,7 @@ class TestDmsGetverAPI (unittest.TestCase):
         da = _DmsGetverAPI ()
         source_version = '08.88.88.88'
         version = '09.99.99.99'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         distr_state_info = da.create_distr_request (version = version, source_version = source_version, distr_type = distr_type, client_filter = None)
         state = distr_state_info ['state']
@@ -202,7 +202,7 @@ class TestDmsGetverAPI (unittest.TestCase):
     def test_create_distr_request_500 (self):
         da = _DmsGetverAPI ()
         version = '08.88.88.88'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         distr_state_info = da.create_distr_request (version = version, distr_type = distr_type, client_filter = None)
         state = distr_state_info ['state']
@@ -279,7 +279,7 @@ class TestDmsGetverAPI (unittest.TestCase):
     def test_get_distr_state_info_full (self):
         da = _DmsGetverAPI ()
         version = '09.99.99.99'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         da.req_counter = 1
         distr_state_info = da.get_distr_state_info (version = version, distr_type = distr_type, client_filter = client_filter)
@@ -290,7 +290,7 @@ class TestDmsGetverAPI (unittest.TestCase):
     def test_get_distr_state_info_full_dumb404 (self):
         da = _DmsGetverAPI ()
         version = '07.77.77.77'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         distr_state_info = da.get_distr_state_info (version = version, distr_type = distr_type, client_filter = client_filter)
         state = distr_state_info ['state']
@@ -301,7 +301,7 @@ class TestDmsGetverAPI (unittest.TestCase):
         da = _DmsGetverAPI ()
         version = '09.99.99.99'
         source_version = '08.88.88.88'
-        distr_type = 'CARDS'
+        distr_type = 'DM'
         client_filter = 'FILTER'
         da.req_counter = 1
         distr_state_info = da.get_distr_state_info (version = version, source_version = source_version, distr_type = distr_type, client_filter = client_filter)
