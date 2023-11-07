@@ -23,7 +23,7 @@ class DmsGetverAPI (API.HttpAPI):
         self.waiting_states = ['INITIATED', 'PROCESSING', 'QUEUED']
 
         # delivery states finished
-        self.exit_states = ['READY', 'FAILED']
+        self.exit_states = ['READY', 'FAILED', 'SUCCESS']
 
         # wait for state timeout
         self.wait_state_timeout = 1000
@@ -31,14 +31,48 @@ class DmsGetverAPI (API.HttpAPI):
         # wait for state request interval
         self.wait_state_sleep = 30
 
+        # oracle version
+        self.oracle_version = '19.16.0.0.0'
+
+        # oracle encoding
+        self.oracle_encoding = 'AL32UTF8'
+
+        # oracle edition
+        self.oracle_edition = 'EE'
+
+    def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None, auth_token=None):
+        """
+        """
+        logging.debug('Reached create_custom_image')
+        logging.debug('version: [%s]' % version)
+        logging.debug('distr_type: [%s]' % distr_type)
+        logging.debug('client_filter: [%s]' % client_filter)
+        logging.debug('client_code: [%s]' % client_code)
+        logging.debug('auth_token: [%s]' % auth_token)
+
+        self.web.auth = None
+        url = posixpath.join('api', 'v1', 'images', 'custom-cdt')
+        headers = self.get_headers_by_token(auth_token)
+        params = {
+            'image_type': 'CUSTOM',
+            'product_type': distr_type.lower(),
+            'product_version': version,
+            'custom_attribute': client_code,
+            'getver_filter': client_filter,
+            'oracle_encoding': self.oracle_encoding,
+            'oracle_version': self.oracle_version,
+            'oracle_edition': self.oracle_edition,
+            'remap_tablespaces': 'true'
+        }
+        resp = self.post(url, headers=headers, json=params)
+        return resp.json()
+
     def create_distr_request(self, version=None, source_version=None, distr_type=None, client_filter=None):
         """
         Creates a new distribution request
         :param str version: required version e.g. 03.44.30.55
-        :param str distr_type: distribution type e.g. CARDS
-        :param client_filter: a set of software components e.g. Diners Club Russia Acquiring;MasterCard;VISA;
-                                  if not provided an attempt to fetch it from svn will be performed
-                                  filter fetching is defined in separate class
+        :param str distr_type: distribution type 
+        :param client_filter: a set of software components 
         :return: distribution state info as returned by dms
         """
         logging.debug('Reached create_distr_request')
@@ -67,6 +101,21 @@ class DmsGetverAPI (API.HttpAPI):
             tf.write(chunk)
         tf.seek(0)
         return tfn
+
+    def get_audit(self, audit_id, auth_token):
+        """
+        """
+        logging.debug('Reached get_audit')
+        logging.debug('audit_id: [%s]' % audit_id)
+        logging.debug('auth_token: [%s]' % auth_token)
+        self.web.auth = None
+        headers = self.get_headers_by_token(auth_token)
+        url = posixpath.join('api', 'v1', 'audit', audit_id)
+        r = self.get(url, headers=headers)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
 
     def get_headers_by_token(self, auth_token):
         """
@@ -292,6 +341,34 @@ class DmsGetverAPI (API.HttpAPI):
         self.raise_exception_high = rh
         return token_type, access_token
 
+
+    def wait_for_image(self, audit_id, auth_token):
+        """
+        """
+        logging.debug('Reached wait_for_image')
+        logging.debug('audit_id: [%s]' % audit_id)
+        logging.debug('auth_token: [%s]' % auth_token)
+        self.web.auth = None
+        ela = 0
+        st = int(time.time())
+        audit = None
+
+        while ela < self.wait_state_timeout:
+            ela = int(time.time()) - st
+            audit = self.get_audit(audit_id, auth_token)
+
+            if not audit:
+                logging.error('get_audit returned None')
+                return None
+
+            status = audit['status']
+            logging.debug('received audit object in status [%s]' % status)
+
+            if status in self.exit_states:
+                logging.debug('audit is in exit state, returning')
+                return audit
+
+        return None
 
     def wait_for_state(self, distr_id, distr_option):
         """
