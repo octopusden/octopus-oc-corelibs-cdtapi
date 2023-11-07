@@ -33,9 +33,9 @@ class DmsGetverAPI (API.HttpAPI):
         """
         Creates a new distribution request
         :param str version: required version e.g. 03.44.30.55
-        :param str distr_type: distribution type e.g. CARDS
-        :param client_filter: a set of software components e.g. Diners Club Russia Acquiring;MasterCard;VISA;
-                                  if not provided an attempt to fetch it from svn will be performed
+        :param str distr_type: distribution type e.g. DM
+        :param client_filter: a set of software components
+                                  if not provided an attempt to fetch it from vcs will be performed
                                   filter fetching is defined in separate class
         :return: distribution state info as returned by dms
         """
