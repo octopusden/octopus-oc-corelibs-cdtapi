@@ -10,6 +10,8 @@ import posixpath
 
 class DmsGetverAPI (API.HttpAPI):
     # prefix for credentials environment variables used by HttpAPI
+    # note that dbsm and dms-getver use different URLs and credentials
+    # dbsm credentials are expected with DBSM2 prefix
     _env_prefix = 'DMS'
 
     def __init__(self, *args, **argv):
@@ -335,8 +337,8 @@ class DmsGetverAPI (API.HttpAPI):
         Obtain auth token
         """
         logging.debug('Reached login')
-        username = os.getenv('DMS_USER')
-        password = os.getenv('DMS_PASSWORD')
+        username = os.getenv('DBSM2_USER')
+        password = os.getenv('DBSM2_PASSWORD')
         login_data = {
             'grant_type': '',
             'username': username,
