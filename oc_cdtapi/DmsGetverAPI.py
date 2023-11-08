@@ -19,10 +19,13 @@ class DmsGetverAPI (API.HttpAPI):
         # TODO: re-factor when Python2 support will be deprecated
         super(DmsGetverAPI, self).__init__(*args, **argv)
 
-        # delivery states in process
-        self.waiting_states = ['INITIATED', 'PROCESSING', 'QUEUED']
+        # auth token
+        self.auth_token = None
 
-        # delivery states finished
+        # delivery states or images in process
+        self.waiting_states = ['INITIATED', 'PROCESSING', 'QUEUED', 'UNKNOWN']
+
+        # delivery states or images finished
         self.exit_states = ['READY', 'FAILED', 'SUCCESS']
 
         # wait for state timeout
@@ -40,19 +43,24 @@ class DmsGetverAPI (API.HttpAPI):
         # oracle edition
         self.oracle_edition = 'EE'
 
-    def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None, auth_token=None):
+    def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None):
         """
+        Sends request to create custom image
+        :param str version: version of product
+        :param str distr_type: type of product
+        :param str client_filter: client specific filter list
+        :param str client_code: client code
         """
         logging.debug('Reached create_custom_image')
         logging.debug('version: [%s]' % version)
         logging.debug('distr_type: [%s]' % distr_type)
         logging.debug('client_filter: [%s]' % client_filter)
         logging.debug('client_code: [%s]' % client_code)
-        logging.debug('auth_token: [%s]' % auth_token)
 
         self.web.auth = None
+        self.raise_exception_high = 499
         url = posixpath.join('api', 'v1', 'images', 'custom-cdt')
-        headers = self.get_headers_by_token(auth_token)
+        headers = self.get_headers()
         params = {
             'image_type': 'CUSTOM',
             'product_type': distr_type.lower(),
@@ -64,8 +72,9 @@ class DmsGetverAPI (API.HttpAPI):
             'oracle_edition': self.oracle_edition,
             'remap_tablespaces': 'true'
         }
-        resp = self.post(url, headers=headers, json=params)
-        return resp.json()
+        r = self.post(url, headers=headers, json=params)
+        return self.json_or_none(r)
+
 
     def create_distr_request(self, version=None, source_version=None, distr_type=None, client_filter=None):
         """
@@ -82,15 +91,17 @@ class DmsGetverAPI (API.HttpAPI):
 
         return distr_state_info
 
-    def download_file(self, image_id, auth_token):
+    def download_file(self, image_id):
         """
+        Downloads specified image to file
+        :param str image_id: id of image to download
+        :return: path to downloaded file
         """
         logging.debug('Reached download_file')
         logging.debug('image_id: [%s]' % image_id)
-        logging.debug('auth_token: [%s]' % auth_token)
         logging.debug('Unsetting auth')
         self.web.auth = None
-        headers = self.get_headers_by_token(auth_token)
+        headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'images', image_id, 'download')
         logging.debug('url: [%s]' % url)
         tf = tempfile.NamedTemporaryFile(delete=False)
@@ -102,31 +113,31 @@ class DmsGetverAPI (API.HttpAPI):
         tf.seek(0)
         return tfn
 
-    def get_audit(self, audit_id, auth_token):
+    def get_audit(self, audit_id):
         """
+        Requests audit record by record id
+        :param str audit_id: id of audit record
+        :return: audit record
         """
         logging.debug('Reached get_audit')
         logging.debug('audit_id: [%s]' % audit_id)
-        logging.debug('auth_token: [%s]' % auth_token)
         self.web.auth = None
-        headers = self.get_headers_by_token(auth_token)
+        self.raise_exception_high = 499
+        headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'audit', audit_id)
         r = self.get(url, headers=headers)
-        if r.status_code == 200:
-            return r.json()
-        else:
-            return None
+        return self.json_or_none(r)
 
-    def get_headers_by_token(self, auth_token):
+    def get_headers(self):
         """
         """
-        logging.debug('Reached get_headers_by_token')
-        logging.debug('auth_token: [%s]' % auth_token)
-        headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {auth_token}'}
+        logging.debug('Reached get_headers')
+        logging.debug('auth_token: [%s]' % self.auth_token)
+        headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {self.auth_token}'}
         logging.debug('About to return: [%s]' % headers)
         return headers
 
-    def search_image(self, version=None, source_version=None, distr_type=None, client_filters=None, auth_token=None):
+    def search_image(self, version=None, distr_type=None):
         """
         searches for images, calls download
         :return: path to temp file, image data
@@ -134,17 +145,11 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('Reached download_image')
         logging.debug('Unsetting auth')
         self.web.auth = None
-        if not auth_token:
-            logging.error('No auth token provided, giving up')
-            return None
         logging.debug('version = [%s]' % version)
-        logging.debug('source_version = [%s]' % source_version)
         logging.debug('distr_type = [%s]' % distr_type)
-        logging.debug('client_filters = [%s]' % client_filters)
-        logging.debug('auth_token length = [%s]' % len(auth_token))
         
         url = posixpath.join('api', 'v1', 'images')
-        headers = self.get_headers_by_token(auth_token)
+        headers = self.get_headers()
         params = {
             'strict_filters': 'true',
             'product_type': distr_type.lower(),
@@ -158,12 +163,15 @@ class DmsGetverAPI (API.HttpAPI):
             return None
         images = resp.json()['items']
         logging.debug('found [%s] images' % len(images))
+        logging.debug('Dumping images data')
+        logging.debug(json.dumps(images, indent=4))
         for image in images:
             image_id = image['id']
             image_name = image['name']
-            oracle_version = image['oracle_version']
+            oracle_version = image.get('oracle_version')
+            customisation = image.get('customisation')
             logging.debug('checking images [%s]' % image_name)
-            if oracle_version['oracle_edition'] == 'EE':
+            if oracle_version['oracle_edition'] == 'EE' and customisation is None:
                 logging.debug('image is enterprise edition')
                 return image
         logging.error('No images found')
@@ -307,6 +315,21 @@ class DmsGetverAPI (API.HttpAPI):
 
         return url
 
+    def json_or_none(self, resp):
+        """
+        Returns requests response's json if status code is 200-299 or logs error and returns None
+        :param requests.response resp: requests' response
+        :return: requests.response.json or None
+        """
+        logging.debug('Reached json_or_none')
+        status_code = resp.status_code
+        if 200 <= status_code <= 299:
+            logging.debug('[%s] status code received, trying to return json' % status_code)
+            return resp.json()
+        else:
+            logging.error('[%s] status code received, assuming an error, returning None' % status_code)
+        return None
+
     def login(self):
         """
         Obtain auth token
@@ -339,23 +362,27 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('token_type: [%s]' % token_type)
         logging.debug('access_token: [%s]' % access_token)
         self.raise_exception_high = rh
+        self.auth_token = access_token
         return token_type, access_token
 
 
-    def wait_for_image(self, audit_id, auth_token):
+    def wait_for_image(self, audit_id):
         """
+        Performs periodic requests for audit record.
+        Returns audit record when it is in exit state.
+        :param str audit_id: id of audit record
+        :return: audit record
         """
         logging.debug('Reached wait_for_image')
         logging.debug('audit_id: [%s]' % audit_id)
-        logging.debug('auth_token: [%s]' % auth_token)
-        self.web.auth = None
         ela = 0
         st = int(time.time())
         audit = None
 
         while ela < self.wait_state_timeout:
             ela = int(time.time()) - st
-            audit = self.get_audit(audit_id, auth_token)
+
+            audit = self.get_audit(audit_id)
 
             if not audit:
                 logging.error('get_audit returned None')
