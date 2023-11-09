@@ -87,14 +87,13 @@ class Dbsm2API (API.HttpAPI):
         headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'images', image_id, 'download')
         logging.debug('url: [%s]' % url)
-        tf = tempfile.NamedTemporaryFile(delete=False)
-        tfn = tf.name
-        logging.debug('tf: [%s]' % tfn)
+        tf = tempfile.NamedTemporaryFile()
+        logging.debug('tf: [%s]' % tf)
         r = self.get(url, headers=headers, stream=True)
         for chunk in r.iter_content(chunk_size=8192):
             tf.write(chunk)
         tf.seek(0)
-        return tfn
+        return tf
 
     def get_audit(self, audit_id):
         """
@@ -117,7 +116,6 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('Reached get_headers')
         logging.debug('auth_token length: [%s]' % len(self.auth_token))
         headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {self.auth_token}'}
-        logging.debug('About to return: [%s]' % headers)
         return headers
 
     def search_image(self, version=None, distr_type=None):
