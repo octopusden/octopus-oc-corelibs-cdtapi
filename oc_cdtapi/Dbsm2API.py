@@ -115,7 +115,7 @@ class Dbsm2API (API.HttpAPI):
         """
         """
         logging.debug('Reached get_headers')
-        logging.debug('auth_token: [%s]' % self.auth_token)
+        logging.debug('auth_token length: [%s]' % len(self.auth_token))
         headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {self.auth_token}'}
         logging.debug('About to return: [%s]' % headers)
         return headers
@@ -154,7 +154,7 @@ class Dbsm2API (API.HttpAPI):
             oracle_version = image.get('oracle_version')
             customisation = image.get('customisation')
             logging.debug('checking images [%s]' % image_name)
-            if oracle_version['oracle_edition'] == 'EE' and customisation is None:
+            if oracle_version['oracle_edition'] == self.oracle_edition and customisation is None:
                 logging.debug('image is enterprise edition')
                 return image
         logging.error('No images found')
@@ -193,17 +193,14 @@ class Dbsm2API (API.HttpAPI):
         rh = self.raise_exception_high
         self.raise_exception_high = 499
         url = posixpath.join('api', 'v1', 'auth', 'access-token')
-        try:
-            resp = self.post(url, data=login_data)
-            resp_data = resp.json()
-            if resp.status_code == 200:
-                token_type = resp_data['token_type']
-                access_token = resp_data['access_token']
-            else:
-                logging.debug('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
-                return None
-        except:
-            raise
+        resp = self.post(url, data=login_data)
+        resp_data = resp.json()
+        if resp.status_code == 200:
+            token_type = resp_data['token_type']
+            access_token = resp_data['access_token']
+        else:
+            logging.debug('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
+            return None
         logging.debug('token_type: [%s]' % token_type)
         logging.debug('access_token: [%s]' % access_token)
         self.raise_exception_high = rh
