@@ -51,7 +51,7 @@ class _Session(object):
             return _Response(self.handler(r))
         else:
             components_json = FakeJson()
-            components_json.setresp({"components":[{"id":"appserver"}]})
+            components_json.setresp({"components":[{"id":"server"}]})
             return components_json
 
 
@@ -76,13 +76,13 @@ class _DmsAPI(DmsAPI):
         override http request method
         """
         if re.match('.+\/component\/.+\/versions',url):
-            return '{"versions":[{"version":"1.7.796","status":"RELEASE","versionInfo":{"snapshot":false,"rcVersion":false,"major":2,"minor":0,"service":1950,"itemsCount":4,"fix":0,"buildNumber":0}}]}'
+            return '{"versions":[{"version":"1.1.1","status":"RELEASE","versionInfo":{"snapshot":false,"rcVersion":false,"major":2,"minor":0,"service":1950,"itemsCount":4,"fix":0,"buildNumber":0}}]}'
         elif re.match('.+\/component\/.+\/version\/.+\/distribution\/list$',url):
-            return '[{"name":"appserver","classifier":"rhel6-linux-x64"},{"name":"appserver","classifier":"rhel7-linux-x64"}]'
+            return '[{"name":"server","classifier":"rhel6-linux-x64"},{"name":"server","classifier":"rhel7-linux-x64"}]'
         elif re.match('.+\/component\/.+\/version\/.+\/distribution\/.+\/gav.+$',url):
-            return '{"groupId":"com.localhost.distribution.appserver","artifactId":"appserver","version":"1.7.796","classifier":"windows-x64","packaging":"zip"}'
+            return '{"groupId":"com.localhost.distribution.server","artifactId":"server","version":"1.1.1","classifier":"windows-x64","packaging":"zip"}'
         elif re.match('.+\/component\/.+\/version\/.+\/distribution\/.+\/gav$',url):
-            return '{"groupId":"com.localhost.distribution.appserver","artifactId":"appserver","version":"1.7.796","packaging":"zip"}'
+            return '{"groupId":"com.localhost.distribution.server","artifactId":"server","version":"1.1.1","packaging":"zip"}'
         return '[]'
 
 
@@ -116,16 +116,16 @@ class TestDmsAPI(unittest.TestCase):
     def test_get_components(self):
         test_ok = False
         all_c = self.dms_api.get_components()
-        if {'id': 'appserver'} in all_c:
+        if {'id': 'server'} in all_c:
             test_ok = True
         self.assertTrue(test_ok)
 
 
     def test_get_versions(self):
         test_ok = False
-        component = 'appserver'
+        component = 'server'
         all_v = self.dms_api.get_versions(component)
-        if '1.7.796' in all_v:
+        if '1.1.1' in all_v:
             test_ok = True
         self.assertTrue(test_ok)
 
@@ -140,36 +140,36 @@ class TestDmsAPI(unittest.TestCase):
 
     def test_get_artifacts(self):
         test_ok = False
-        component = 'appserver'
+        component = 'server'
         ctype = 'distribution'
-        version = '1.7.796'
+        version = '1.1.1'
         all_a = self.dms_api.get_artifacts(component, version, ctype)
         for a in all_a:
-            if a['name'] == 'appserver':
+            if a['name'] == 'server':
                 test_ok = True
         self.assertTrue(test_ok)
 
 
     def test_get_gav_no_classifier(self):
         test_ok = False
-        component = 'appserver'
+        component = 'server'
         ctype = 'distribution'
-        version = '1.7.796'
-        artifact = 'appserver'
+        version = '1.1.1'
+        artifact = 'server'
         classifier = None
         gav = self.dms_api.get_gav(component, version, 'distribution', artifact, classifier)
-        self.assertEqual(gav,'com.localhost.distribution.appserver:appserver:1.7.796:zip')
+        self.assertEqual(gav,'com.localhost.distribution.server:server:1.1.1:zip')
 
 
     def test_get_gav_classifier(self):
         test_ok = False
-        component = 'appserver'
+        component = 'server'
         ctype = 'distribution'
-        version = '1.7.796'
-        artifact = 'appserver'
+        version = '1.1.1'
+        artifact = 'server'
         classifier = 'windows-x64'
         gav = self.dms_api.get_gav(component, version, 'distribution', artifact, classifier)
-        self.assertEqual(gav,'com.localhost.distribution.appserver:appserver:1.7.796:zip:windows-x64')
+        self.assertEqual(gav,'com.localhost.distribution.server:server:1.1.1:zip:windows-x64')
 
 
 
