@@ -42,6 +42,10 @@ class Dbsm2API (API.HttpAPI):
         # oracle edition
         self.oracle_edition = 'EE'
 
+        # remove auth to stop requests overriding headers, do not raise exceptions on minor http errors
+        self.web.auth = None
+        self.raise_exception_high = 499
+
     def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None):
         """
         Sends request to create custom image
@@ -56,8 +60,6 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('client_filter: [%s]' % client_filter)
         logging.debug('client_code: [%s]' % client_code)
 
-        self.web.auth = None
-        self.raise_exception_high = 499
         url = posixpath.join('api', 'v1', 'images', 'custom-cdt')
         headers = self.get_headers()
         params = {
@@ -83,7 +85,6 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('Reached download_file')
         logging.debug('image_id: [%s]' % image_id)
         logging.debug('Unsetting auth')
-        self.web.auth = None
         headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'images', image_id, 'download')
         logging.debug('url: [%s]' % url)
@@ -103,8 +104,6 @@ class Dbsm2API (API.HttpAPI):
         """
         logging.debug('Reached get_audit')
         logging.debug('audit_id: [%s]' % audit_id)
-        self.web.auth = None
-        self.raise_exception_high = 499
         headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'audit', audit_id)
         r = self.get(url, headers=headers)
@@ -125,7 +124,6 @@ class Dbsm2API (API.HttpAPI):
         """
         logging.debug('Reached download_image')
         logging.debug('Unsetting auth')
-        self.web.auth = None
         logging.debug('version = [%s]' % version)
         logging.debug('distr_type = [%s]' % distr_type)
         
@@ -188,8 +186,6 @@ class Dbsm2API (API.HttpAPI):
             'client_id': '',
             'client_secret': ''
         }
-        rh = self.raise_exception_high
-        self.raise_exception_high = 499
         url = posixpath.join('api', 'v1', 'auth', 'access-token')
         resp = self.post(url, data=login_data)
         resp_data = resp.json()
@@ -201,7 +197,6 @@ class Dbsm2API (API.HttpAPI):
             return None
         logging.debug('token_type: [%s]' % token_type)
         logging.debug('access_token: [%s]' % access_token)
-        self.raise_exception_high = rh
         self.auth_token = access_token
         return token_type, access_token
 
