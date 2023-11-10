@@ -32,11 +32,9 @@ class DmsGetverAPI (API.HttpAPI):
     def create_distr_request(self, version=None, source_version=None, distr_type=None, client_filter=None):
         """
         Creates a new distribution request
-        :param str version: required version e.g. 03.44.30.55
-        :param str distr_type: distribution type e.g. CARDS
-        :param client_filter: a set of software components e.g. Diners Club Russia Acquiring;MasterCard;VISA;
-                                  if not provided an attempt to fetch it from svn will be performed
-                                  filter fetching is defined in separate class
+        :param str version: required version
+        :param str distr_type: distribution type
+        :param client_filter: a set of software components
         :return: distribution state info as returned by dms
         """
         logging.debug('Reached create_distr_request')
