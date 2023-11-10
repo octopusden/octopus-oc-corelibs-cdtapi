@@ -70,12 +70,12 @@ class TestJenkinsClient( Jenkins ):
     queue_data = { "items":
                 [   {"actions":[
                         {"causes":[{"shortDescription":"Started by an SCM change"},{"shortDescription":"Started by an SCM change"}]},
-                        {"parameters":[{"name":"HOME","value":"/local/homes/ows_home"},{"name":"action","value":"reinstall"},{"name":"version","value":"default"}]}],
+                        {"parameters":[{"name":"HOME","value":"/local/homes/home"},{"name":"action","value":"reinstall"},{"name":"version","value":"default"}]}],
                     "blocked":True,
                     "buildable":False,
                     "id":9590,
                     "inQueueSince":1542791418408,
-                    "params":"\nHOME=/local/homes/ows_home\naction=reinstall\nversion=default",
+                    "params":"\nHOME=/local/homes/home\naction=reinstall\nversion=default",
                     "stuck":False,
                     "task":{    "name":"c.TEST_CUSTOMER.branches-int.cards",
                                 "url":"http://localhost:8080/job/c.TEST_CUSTOMER.branches-int.cards/",
