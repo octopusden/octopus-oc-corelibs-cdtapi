@@ -117,6 +117,16 @@ class Dbsm2API (API.HttpAPI):
         headers = {'Accept': 'application/json; charset=utf-8', 'Authorization': f'Bearer {self.auth_token}'}
         return headers
 
+    def get_image_details(self, image_id):
+        """
+        """
+        logging.debug('Reached get_image_details')
+        logging.debug('image_id: [%s]' % image_id)
+        headers = self.get_headers()
+        url = posixpath.join('api', 'v1', 'images', image_id)
+        r = self.get(url, headers=headers)
+        return self.json_or_none(r)
+
     def search_image(self, version=None, distr_type=None):
         """
         searches for images, calls download
