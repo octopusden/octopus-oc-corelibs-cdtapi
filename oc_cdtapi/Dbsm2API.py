@@ -238,6 +238,7 @@ class Dbsm2API (API.HttpAPI):
             if status in self.exit_states:
                 logging.debug('audit is in exit state, returning')
                 return audit
+            logging.debug('audit is not in exit state, sleeping [%s]' % self.wait_state_sleep)
             time.sleep(self.wait_state_sleep)
         return None
 
