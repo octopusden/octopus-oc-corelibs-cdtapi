@@ -203,8 +203,8 @@ class Dbsm2API (API.HttpAPI):
             token_type = resp_data['token_type']
             access_token = resp_data['access_token']
         else:
-            logging.debug('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
-            return None
+            logging.error('Server returned an error [%s] [%s]' % (resp.status_code, resp.text))
+            raise API.HttpAPIError('login failed')
         logging.debug('token_type: [%s]' % token_type)
         logging.debug('access_token: [%s]' % access_token)
         self.auth_token = access_token
