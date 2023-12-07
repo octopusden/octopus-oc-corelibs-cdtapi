@@ -15,8 +15,7 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('Reached __init__')
         logging.debug('Calling base class constructor for availability of HttpAPI methods')
 
-        # TODO: re-factor when Python2 support will be deprecated
-        super(Dbsm2API, self).__init__(*args, **argv)
+        super().__init__(*args, **argv)
 
         # auth token
         self.auth_token = None

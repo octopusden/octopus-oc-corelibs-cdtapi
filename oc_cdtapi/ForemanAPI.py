@@ -22,11 +22,11 @@ class ForemanAPI(HttpAPI):
 
     headers = {"Accept": "version=2,application/json", "Content-Type": "application/json"}
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         Class initialization, setting the default values for a new host
         """
-        HttpAPI.__init__(self)
+        super().__init__(*args, **kwargs)
         class_defaults = namedtuple("values", "exp_date location_id hostgroup deploy_on")
         exp_date = self._set_expiration()
         location_id = 5
