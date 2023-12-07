@@ -14,8 +14,7 @@ class DmsGetverAPI (API.HttpAPI):
         logging.debug('Reached __init__')
         logging.debug('Calling base class constructor for availability of HttpAPI methods')
 
-        # TODO: re-factor when Python2 support will be deprecated
-        super(DmsGetverAPI, self).__init__(*args, **argv)
+        super().__init__(*args, **argv)
 
         # delivery states in process
         self.waiting_states = ['INITIATED', 'PROCESSING', 'QUEUED']

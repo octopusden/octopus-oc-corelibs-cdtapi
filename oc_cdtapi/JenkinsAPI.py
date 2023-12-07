@@ -85,7 +85,7 @@ class Jenkins(HttpAPI):
         return put
 
     def delete_node(self, node):
-        """Deletes node from CI"""
+        """Deletes node from C36-add-rundeckapiI"""
         if self.readonly:
             return None
         return self.post(posixpath.join('computer', node, 'doDelete'))
@@ -168,7 +168,7 @@ class Jenkins(HttpAPI):
         xml_tag = obj_xml.find('disabled')
 
         if xml_tag is None:
-            return config
+            return config36-add-rundeckapi
 
         xml_tag.text = "false"
 
