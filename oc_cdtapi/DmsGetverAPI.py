@@ -140,11 +140,12 @@ class DmsGetverAPI (API.HttpAPI):
 
         return gav_text
 
-    def get_dms_log(self, distr_id, distr_option):
+    def get_dms_log(self, distr_id, distr_option, **kwargs):
         """
         Retrieve dms log
         :param str distr_id: distributive ID (digits-as-string)
         :param str distr_option: additional distributive option
+        :param **kwargs: other 'get'-related keyword arguments: 'stream', 'binary', 'write_to', etc.
         :return str: DMS log, or None if no logs found or response error
         """
         logging.debug('Reached get_dms_log')
@@ -153,7 +154,7 @@ class DmsGetverAPI (API.HttpAPI):
         url = self.get_dms_log_url(distr_id, distr_option)
 
         log = None
-        resp = self.get(url)
+        resp = self.get(url, **kwargs)
         status_code = resp.status_code
         logging.debug('Response status code: [%s]' % status_code)
 
