@@ -45,7 +45,7 @@ class Dbsm2API (API.HttpAPI):
         self.web.auth = None
         self.raise_exception_high = 499
 
-    def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None):
+    def create_custom_image(self, version=None, distr_type=None, client_filter=None, client_code=None, schema_name=None):
         """
         Sends request to create custom image
         :param str version: version of product
@@ -58,6 +58,7 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('distr_type: [%s]' % distr_type)
         logging.debug('client_filter: [%s]' % client_filter)
         logging.debug('client_code: [%s]' % client_code)
+        logging.debug('schema_name: [%s]' % schema_name)
 
         url = posixpath.join('api', 'v1', 'images', 'custom-cdt')
         headers = self.get_headers()
@@ -70,6 +71,7 @@ class Dbsm2API (API.HttpAPI):
             'oracle_encoding': self.oracle_encoding,
             'oracle_version': self.oracle_version,
             'oracle_edition': self.oracle_edition,
+            'schema_name': schema_name,
             'remap_tablespaces': 'true'
         }
         r = self.post(url, headers=headers, json=params)
