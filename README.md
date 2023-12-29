@@ -4,7 +4,7 @@
 
 - *oc\_cdtapi* module
     - API.py — an extension to python requests for http/https quieries
-    - Dbms2API.py - an API to database schema manager (some propieritary implementations)
+    - Dbsm2API.py - an API to database schema manager (some propieritary implementations)
     - DevPIAPI.py — class dealing with Python Index
     — DmsAPI.py — an API to Distributive Management System (some propieritary implementations)
     - DmsGetverAPI.py — an API to GetVersion part of Distributive Management System (some propieritary implementations)
