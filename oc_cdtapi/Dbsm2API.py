@@ -27,7 +27,7 @@ class Dbsm2API (API.HttpAPI):
         self.exit_states = ['FAILED', 'SUCCESS']
 
         # wait for state timeout
-        self.wait_state_timeout = 1000
+        self.wait_state_timeout = 1800
 
         # wait for state request interval
         self.wait_state_sleep = 30
@@ -59,6 +59,9 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('client_filter: [%s]' % client_filter)
         logging.debug('client_code: [%s]' % client_code)
         logging.debug('schema_name: [%s]' % schema_name)
+        if client_filter is None:
+            logging.debug('received None client_filter, setting to empty string')
+            client_filter = ''
 
         url = posixpath.join('api', 'v1', 'images', 'custom-cdt')
         headers = self.get_headers()
@@ -74,6 +77,8 @@ class Dbsm2API (API.HttpAPI):
             'schema_name': schema_name,
             'remap_tablespaces': 'true'
         }
+        logging.debug('dumping request params')
+        logging.debug(json.dumps(params, indent=4))
         r = self.post(url, headers=headers, json=params)
         return self.json_or_none(r)
 
@@ -123,6 +128,11 @@ class Dbsm2API (API.HttpAPI):
         """
         logging.debug('Reached get_image_details')
         logging.debug('image_id: [%s]' % image_id)
+
+        if image_id is None:
+            logging.debug('received None image_id, returning None')
+            return None
+
         headers = self.get_headers()
         url = posixpath.join('api', 'v1', 'images', image_id)
         r = self.get(url, headers=headers)
@@ -220,6 +230,14 @@ class Dbsm2API (API.HttpAPI):
         """
         logging.debug('Reached wait_for_image')
         logging.debug('audit_id: [%s]' % audit_id)
+
+        if not isinstance(self.wait_state_timeout, int):
+            logging.debug('wait_state_timeout is not integer, attempting to convert')
+            self.wait_state_timeout = int(self.wait_state_timeout)
+        if not isinstance(self.wait_state_sleep, int):
+            logging.debug('wait_state_sleep in not integer, attempting to convert')
+            self.wait_state_sleep = int(self.wait_state_sleep)
+
         ela = 0
         st = int(time.time())
         audit = None
