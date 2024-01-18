@@ -258,6 +258,8 @@ class Dbsm2API (API.HttpAPI):
                 logging.debug('audit is in exit state, returning')
                 return audit
             logging.debug('audit is not in exit state, sleeping [%s]' % self.wait_state_sleep)
+            logging.debug('in wait: [%s] of [%s] seconds' % (ela, self.wait_state_timeout) )
             time.sleep(self.wait_state_sleep)
+        logging.error('TIMEOUT waiting for image, returning None')
         return None
 
