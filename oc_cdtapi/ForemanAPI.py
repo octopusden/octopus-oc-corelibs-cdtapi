@@ -193,7 +193,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached _set_expiration')
         return str((datetime.now() + timedelta(days=90)).strftime('%d/%m/%Y'))
 
-    def create_host(self, hostname=None, cores=1, memory=4096, disk=50, owner_id=None,
+    def create_host(self, hostname=None, cores=1, memory=4096, disk=70, owner_id=None,
                     exp_date=None, location_id=None, hostgroup=None,
                     deploy_on=None, custom_json=None):
         """
@@ -276,7 +276,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('hostname = [%s]' % hostname)
         cores = 1
         memory = 4096
-        disk = 50
+        disk = 70
         owner_id = None
 
         exp_date = self.defs.exp_date
