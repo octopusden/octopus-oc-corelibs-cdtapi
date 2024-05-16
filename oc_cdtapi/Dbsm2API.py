@@ -33,7 +33,7 @@ class Dbsm2API (API.HttpAPI):
         self.wait_state_sleep = 30
 
         # oracle version
-        self.oracle_version = '19.16.0.0.0'
+        self.oracle_version = '19.21.0.0.0'
 
         # oracle encoding
         self.oracle_encoding = 'AL32UTF8'
