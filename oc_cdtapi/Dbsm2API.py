@@ -59,6 +59,10 @@ class Dbsm2API (API.HttpAPI):
         logging.debug('client_filter: [%s]' % client_filter)
         logging.debug('client_code: [%s]' % client_code)
         logging.debug('schema_name: [%s]' % schema_name)
+        logging.debug('oracle_version: [%s]' % self.oracle_version)
+        logging.debug('oracle_encoding: [%s]' % self.oracle_encoding)
+        logging.debug('oracle_edition: [%s]' % self.oracle_edition)
+
         if client_filter is None:
             logging.debug('received None client_filter, setting to empty string')
             client_filter = ''
