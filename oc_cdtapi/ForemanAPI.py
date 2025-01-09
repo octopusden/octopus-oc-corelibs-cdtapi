@@ -780,10 +780,11 @@ class ForemanAPI(HttpAPI):
         Turns on/off power on the host
         """
         logging.debug('Reached host_power_v2')
-        logging.debug('Passing to host_power_v1')
-        logging.debug('host = [%s]' % hostname)
-        logging.debug('action = [%s]' % action)
-        self.host_power_v1(hostname, action)
+        actions = ["on", "off"]
+        if action not in actions:
+            raise ForemanAPIError("500 - Incorrect power action was provided")
+        params = json.dumps({"power_action": action})
+        request = self.put(posixpath.join('hosts', hostname, "power"), headers=self.headers, data=params)
 
     def get_report(self, id):
         """
