@@ -785,6 +785,8 @@ class ForemanAPI(HttpAPI):
             raise ForemanAPIError("500 - Incorrect power action was provided")
         params = json.dumps({"power_action": action})
         request = self.put(posixpath.join('hosts', hostname, "power"), headers=self.headers, data=params)
+        if not request.status_code == 200:
+            logging.error('Server returned an error [%s] [%s]' % (request.status_code, request.text))
 
     def get_report(self, id):
         """
