@@ -46,7 +46,7 @@ class DevPIAPI(HttpAPI):
         """
 
         name = name.strip()
-        _request = posixpath.join("+simple", name)
+        _request = posixpath.join("simple", name)
         _resp = self.get(_request)
 
         if (_resp.status_code != 200):
