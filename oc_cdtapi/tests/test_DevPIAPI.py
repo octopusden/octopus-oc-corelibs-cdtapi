@@ -38,7 +38,7 @@ class _DevPIAPI( DevPIAPI ):
         Here we shall construct a fake HTML response
         """
 
-        req = req.replace( str_fake_devpi_url, "" ).replace( "+simple", "" ).strip().strip( posixpath.sep );
+        req = req.replace( str_fake_devpi_url, "" ).replace( "simple", "" ).strip().strip( posixpath.sep );
         # here we should have a component only
 
         resp = _Response();
