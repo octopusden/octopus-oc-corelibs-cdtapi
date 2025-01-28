@@ -71,7 +71,31 @@ class ForemanAPI(HttpAPI):
             return posixpath.join(self.root, "api", req)
         else:
             return posixpath.join(self.root, req)
-
+            
+    def get_host_by_owner(self, owner):
+        """
+        wrapper for api v1/v2
+        """
+        logging.debug('Reached get_host_by_owner')
+        logging.debug('owner = [%s]' % owner)
+        if self.apiversion == 1:
+            logging.error('Not supported in v1, returning None')
+            return None
+        elif self.apiversion == 2:
+            logging.debug('Passing to get_host_by_owner_v2')
+            return self.get_host_by_owner_v2(owner)
+        
+    def get_host_by_owner_v2(self, owner):
+        logging.debug('Reached get_host_by_owner_v2')
+        logging.debug('owner = [%s]' % owner)
+        params = {
+            'search': f'owner={owner_login}',
+            'per_page': 'all'
+        }
+        response = self.get('hosts', params=params)
+        results = response.get('results')
+        return results
+    
     def get_environment(self, env_name):
         """
         wrapper for api v1/v2
