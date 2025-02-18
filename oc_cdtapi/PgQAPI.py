@@ -12,7 +12,7 @@ class PgQAPI (object):
     A = active, being processed
     F = failed
     P = processed
-    message priority 1-100 the higher value the lower priority
+    message priority 1-100 the higher value the lower priority (to be implemented)
     """
 
     def __init__(self, pg_connection=None, url=None, username=None, password=None):
@@ -56,18 +56,42 @@ class PgQAPI (object):
         csr.execute(q, (q_id, 'N', msg_text, priority) )
         conn.commit()
 
+    def exec_select(self, q, parms=None):
+        logging.debug('reached exec_select')
+        logging.debug('will try to execute [%s] with [%s]' % (q, parms) )
+        csr = self.conn.cursor()
+        csr.execute(q, parms)
+        ds = csr.fetchall()
+        return ds
+
+    def exec_update(self, q, parms=None, commit=True):
+        logging.debug('reached exec_update')
+        logging.debug('will try to execute [%s] with [%s]' % (q, parms) )
+        csr = self.conn.cursor()
+        csr.execute(q, parms)
+        if commit:
+            self.conn.commit()
+
+    def get_msg(self, message_id):
+        logging.debug('reached get_msg')
+        logging.debug('getting status of message [%s]' % message_id)
+        ds = self.exec_select('select status, payload from queue_message where id = %s', (str(message_id) ) )
+        if ds:
+            logging.debug('message found, returning [%s]', ds[0])
+            return ds[0]
+        else:
+            return None
+
     def get_queue_id(self, queue_code):
         logging.debug('reached get_queue_id')
         logging.debug('searching for queue with code [%s]' % queue_code) 
-        csr = self.conn.cursor()
-        q = 'select id from queue_type where code = %s'
-        csr.execute(q, (queue_code, ) )
-        ds = csr.fetchone()
+        ds = self.exec_select('select id from queue_type where code = %s', (queue_code, ) )
         if ds:
-            logging.debug('queue found, returning its id')
-            return ds[0]
+            logging.debug('queue found, returning its id [%s]' % ds[0][0])
+            return ds[0][0]
         else:
-            logging.debug('no queue found, returning None')
+            logging.error('queue does not exist, returning None')
+            # TODO raise an exception here
             return None
 
     def pg_connect(self, url=None, username=None, password=None):
@@ -84,3 +108,33 @@ class PgQAPI (object):
         conn = psycopg2.connect(dsn)
         return conn
 
+    def msg_proc_start(self, message_id):
+        logging.debug('reached msg_proc_start')
+        logging.debug('starting processing of message [%s]' % message_id)
+        ds = self.get_msg(message_id)
+        if not ds:
+            logging.error('message [%s] does not exist' % message_id)
+            return None
+        (msg_status, payload) = ds
+        if msg_status != 'N':
+            logging.error('message [%s] is in bad status [%s]' % (str(message_id), msg_status) )
+            return False
+        self.exec_update('update queue_message set proc_start=now(), status=%s where id = %s', ('A', message_id) )
+        return payload
+
+    def new_msg_from_queue(self, queue_code):
+        logging.debug('reached new_msg_from_queue')
+        logging.debug('checking queue [%s]' % queue_code)
+        queue_id = self.get_queue_id(queue_code)
+        if not queue_id:
+            logging.error('queue [%s] does not exist' % queue_code)
+            return None
+        ds = self.exec_select('select min(id), count(id) from queue_message where queue_type__oid = %s and status = %s', (queue_id, 'N') )
+        if ds[0][1] == 0:
+            logging.debug('currently no new messages in queue [%s]' % queue_code)
+            return None
+        msg_id = ds[0][0]
+        logging.debug('found new message id [%s], [%s] new messages in queue' % (msg_id, ds[0][1]) )
+        payload = self.msg_proc_start(msg_id)
+        return payload
+        
