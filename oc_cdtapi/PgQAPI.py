@@ -1,5 +1,6 @@
 # created 2025-02 https://github.com/ivansa-ru
 
+import json
 import logging
 import os
 import psycopg2
@@ -57,7 +58,14 @@ class PgQAPI (object):
 
     def compose_dlbuild(self, parms):
         logging.debug('reached compose_dlbuild')
-        return 'dlbuild_composed_message'
+        logging.debug('received parms: [%s]' % parms)
+        tag = parms.get('tag')
+        if not tag:
+            logging.error('no tag specified')
+            return None
+        logging.debug('composing message for tag [%s]' % tag)
+        message = ["build_delivery", [tag], {}]
+        return message
 
     def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None):
         logging.debug('reached enqueue_message')
@@ -70,7 +78,7 @@ class PgQAPI (object):
         q_id = self.get_queue_id(queue_code)
         csr = conn.cursor()
         q = 'insert into queue_message (queue_type__oid, status, payload, priority) values (%s, %s, %s, %s)'
-        csr.execute(q, (q_id, 'N', msg_text, priority) )
+        csr.execute(q, (q_id, 'N', json.dumps(msg_text), priority) )
         conn.commit()
 
     def exec_select(self, q, parms=None):
