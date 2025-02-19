@@ -1,3 +1,5 @@
+# created 2025-02 https://github.com/ivansa-ru
+
 import logging
 import os
 import psycopg2
@@ -23,6 +25,7 @@ class PgQAPI (object):
         else:
             logging.debug('No connection provided, creating')
             self.conn = self.pg_connect(url, username, password)
+        self.message_types = ['dlartifacts', 'dlbuild', 'dlcontents', 'dlupload', 'ns']
 
     def create_queue(self, queue_code, queue_name):
         logging.debug('reached create_queue')
@@ -41,6 +44,20 @@ class PgQAPI (object):
             return q_id
         else:
             logging.error('failed to create queue')
+
+    def compose_message(self, message_type, parms):
+        logging.debug('reached compose_message')
+        logging.debug('trying to compose message of type [%s]' % message_type)
+        if message_type not in self.message_types:
+            logging.error('unknown message type [%s]' % message_type)
+            return None
+        method_name = f'compose_{message_type}'
+        method = getattr(self, method_name, None)
+        return method(parms)
+
+    def compose_dlbuild(self, parms):
+        logging.debug('reached compose_dlbuild')
+        return 'dlbuild_composed_message'
 
     def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None):
         logging.debug('reached enqueue_message')
