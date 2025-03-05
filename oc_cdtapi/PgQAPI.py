@@ -99,31 +99,6 @@ class PgQAPI (object):
         if commit:
             self.conn.commit()
 
-    def get_new_msg(self, queue_code):
-        logging.debug('reached get_new_msg')
-        logging.debug('looging for new message in queue [%s]' % queue_code)
-        queue_id = self.get_queue_id(queue_code)
-        if not queue_id:
-            logging.error('no such queue [%s]' % queue_code)
-            return None
-        q = 'select min(id) from queue_message where status = %s and queue_type__oid = %s'
-        ds = self.exec_select(q, ('N', queue_id) )
-        if not ds:
-            logging.debug('there are no new messages in queue [%s]' % queue_code)
-            return None
-        msg_id = ds[0][0]
-        logging.debug('found new message with id [%s]' % msg_id)
-        new_msg = self.get_msg(msg_id)
-        if not new_msg:
-            logging.debug('no message with id [%s]' % msg_id)
-            return None
-        msg_status = new_msg[0]
-        msg_payload = new_msg[1]
-        if msg_status != 'N':
-            logging.debug('message [%s] is not in status N' % msg_id)
-            return None
-        return msg_payload
-
     def get_msg(self, message_id):
         logging.debug('reached get_msg')
         logging.debug('getting status of message [%s]' % message_id)
@@ -191,6 +166,7 @@ class PgQAPI (object):
             return None
         msg_id = ds[0][0]
         logging.debug('found new message id [%s], [%s] new messages in queue' % (msg_id, ds[0][1]) )
+        logging.debug('setting status of message to A')
         payload = self.msg_proc_start(msg_id)
         return payload
         
