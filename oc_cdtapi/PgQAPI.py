@@ -65,6 +65,8 @@ class PgQAPI (object):
             return None
         logging.debug('composing message for tag [%s]' % tag)
         message = ["build_delivery", [tag], {}]
+        logging.debug('composed message')
+        logging.debug(message)
         return message
 
     def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None):
@@ -96,6 +98,31 @@ class PgQAPI (object):
         csr.execute(q, parms)
         if commit:
             self.conn.commit()
+
+    def get_new_msg(self, queue_code):
+        logging.debug('reached get_new_msg')
+        logging.debug('looging for new message in queue [%s]' % queue_code)
+        queue_id = self.get_queue_id(queue_code)
+        if not queue_id:
+            logging.error('no such queue [%s]' % queue_code)
+            return None
+        q = 'select min(id) from queue_message where status = %s and queue_type__oid = %s'
+        ds = self.exec_select(q, ('N', queue_id) )
+        if not ds:
+            logging.debug('there are no new messages in queue [%s]' % queue_code)
+            return None
+        msg_id = ds[0][0]
+        logging.debug('found new message with id [%s]' % msg_id)
+        new_msg = self.get_msg(msg_id)
+        if not new_msg:
+            logging.debug('no message with id [%s]' % msg_id)
+            return None
+        msg_status = new_msg[0]
+        msg_payload = new_msg[1]
+        if msg_status != 'N':
+            logging.debug('message [%s] is not in status N' % msg_id)
+            return None
+        return msg_payload
 
     def get_msg(self, message_id):
         logging.debug('reached get_msg')
@@ -131,7 +158,11 @@ class PgQAPI (object):
         dsn = f"postgresql://{username}:{password}@{url}"
         logging.debug('attempting to connect to [%s]' % url)
         conn = psycopg2.connect(dsn)
-        return conn
+        if conn:
+            logging.debug('connected. [%s]' % conn)
+            return conn
+        logging.error('failed to connect')
+        return None
 
     def msg_proc_start(self, message_id):
         logging.debug('reached msg_proc_start')
