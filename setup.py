@@ -14,7 +14,7 @@ spec = {
     "version": __version,
     "license": "Apache2.0",
     "description": "Custom Development python API libraries",
-    "long_description": "",
+    "long_description": "Custom Development python API libraries",
     "long_description_content_type": "text/plain",
     "packages": ["oc_cdtapi"],
     "install_requires": install_requires,
