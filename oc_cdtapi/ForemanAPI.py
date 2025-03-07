@@ -89,10 +89,10 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached get_host_by_owner_v2')
         logging.debug('owner = [%s]' % owner)
         params = {
-            'search': f'owner_login={owner}',
+            'search': f'owner={owner}',
             'per_page': 'all'
         }
-        response = self.get('hosts', params=params)
+        response = self.get('hosts', params=params).json()
         results = response.get('results')
         return results
     
