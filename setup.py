@@ -5,7 +5,8 @@ from setuptools import setup
 __version = "3.15.2"
 install_requires = [
     "requests",
-    "packaging"
+    "packaging",
+    "psycopg2"
 ]
 tests_require = []
 

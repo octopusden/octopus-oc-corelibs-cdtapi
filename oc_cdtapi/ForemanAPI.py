@@ -243,14 +243,14 @@ class ForemanAPI(HttpAPI):
                        deploy_on, custom_json):
         """
         Creates a host using the default parameters or the ones from an external json
-        note that create_vm in engine actually sends db_task instead of hostname and custom_json, 
+        note that create_vm in engine actually sends db_task instead of hostname and custom_json,
         other parms are ignored
         """
         logging.debug('Reached create_host_v1')
         logging.debug('hostname = [%s]' % hostname)
 
         if not exp_date:
-            exp_date = self.defs.exp_date
+            exp_date = self._set_expiration()
         if not location_id:
             location_id = self.defs.location_id
         if not hostgroup:
@@ -303,7 +303,7 @@ class ForemanAPI(HttpAPI):
         disk = 50
         owner_id = None
 
-        exp_date = self.defs.exp_date
+        exp_date = self._set_expiration()
         location_id = self.defs.location_id
         hostgroup = self.defs.hostgroup
         deploy_on = self.defs.deploy_on
@@ -972,7 +972,7 @@ class ForemanAPI(HttpAPI):
     def set_host_expiry_v1(self, hostname, expiry):
         """
         Attempts to set host expiry date
-        :param hostname: full hostname 
+        :param hostname: full hostname
         :param expiry: expiry date in format yyyy-mm-dd
         """
         logging.debug('Reached set_host_expiry_v1')
@@ -984,7 +984,7 @@ class ForemanAPI(HttpAPI):
     def set_host_expiry_v2(self, hostname, expiry):
         """
         Attempts to set host expiry date
-        :param hostname: full hostname 
+        :param hostname: full hostname
         :param expiry: expiry date in format yyyy-mm-dd
         """
         logging.debug('Reached set_host_expiry_v2')
@@ -1051,7 +1051,7 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_flavor_id_v1')
         flavors_list = self.get(posixpath.join("compute_resources", str(compute_resource_id),
-            "available_flavors")).json()["results"]
+                                               "available_flavors")).json()["results"]
 
         try:
             flavor_id = next(flavor["id"] for flavor in flavors_list if flavor["name"] == flavor_name)
