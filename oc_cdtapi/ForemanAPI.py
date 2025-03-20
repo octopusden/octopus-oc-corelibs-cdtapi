@@ -773,6 +773,14 @@ class ForemanAPI(HttpAPI):
             logging.debug(response)
         return response
 
+    def is_host_powered_on(self, hostname):
+        """
+        Returns true if host is powered on
+        """
+        logging.debug('Reached is_host_powered_on')
+        response = self.get(posixpath.join("hosts", hostname, "power")).json()
+        return response['state'] == 'on'
+    
     def host_power(self, hostname, action):
         """
         wrapper for api v1/v2
