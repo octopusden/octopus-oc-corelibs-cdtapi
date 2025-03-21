@@ -250,7 +250,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('hostname = [%s]' % hostname)
 
         if not exp_date:
-            exp_date = self.defs.exp_date
+            exp_date = self._set_expiration()
         if not location_id:
             location_id = self.defs.location_id
         if not hostgroup:
@@ -303,7 +303,7 @@ class ForemanAPI(HttpAPI):
         disk = 50
         owner_id = None
 
-        exp_date = self.defs.exp_date
+        exp_date = self._set_expiration()
         location_id = self.defs.location_id
         hostgroup = self.defs.hostgroup
         deploy_on = self.defs.deploy_on
