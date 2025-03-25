@@ -2,11 +2,11 @@
 
 from setuptools import setup
 
-__version = "3.16.0"
+__version = "3.16.1"
 install_requires = [
     "requests",
     "packaging",
-    "psycopg2"
+    "psycopg2-binary"
 ]
 tests_require = []
 
