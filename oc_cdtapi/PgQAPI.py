@@ -178,7 +178,7 @@ class PgQAPI (object):
         if msg_status != 'A':
             logging.error('message [%s] is in bad status [%s]' % (str(message_id), msg_status) )
             return False
-        self.exec_update('update queue_message set proc_end=now(), status=%s, error_message=%s where id = %s', ('P', message_id, error_message) )
+        self.exec_update('update queue_message set proc_end=now(), status=%s, error_message=%s where id = %s', ('F', message_id, error_message) )
         return payload
 
     def new_msg_from_queue(self, queue_code):
