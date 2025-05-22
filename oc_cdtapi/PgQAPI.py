@@ -153,6 +153,34 @@ class PgQAPI (object):
         self.exec_update('update queue_message set proc_start=now(), status=%s where id = %s', ('A', message_id) )
         return payload
 
+    def msg_proc_end(self, message_id):
+        logging.debug('reached msg_proc_end')
+        logging.debug('ending processing of message [%s]' % message_id)
+        ds = self.get_msg(message_id)
+        if not ds:
+            logging.error('message [%s] does not exist' % message_id)
+            return None
+        (msg_status, payload) = ds
+        if msg_status != 'A':
+            logging.error('message [%s] is in bad status [%s]' % (str(message_id), msg_status) )
+            return False
+        self.exec_update('update queue_message set proc_end=now(), status=%s where id = %s', ('P', message_id) )
+        return payload
+
+    def msg_proc_fail(self, message_id, error_message):
+        logging.debug('reached msg_proc_fail')
+        logging.debug('failing processing of message [%s]' % message_id)
+        ds = self.get_msg(message_id)
+        if not ds:
+            logging.error('message [%s] does not exist' % message_id)
+            return None
+        (msg_status, payload) = ds
+        if msg_status != 'A':
+            logging.error('message [%s] is in bad status [%s]' % (str(message_id), msg_status) )
+            return False
+        self.exec_update('update queue_message set proc_end=now(), status=%s, error_message=%s where id = %s', ('P', message_id, error_message) )
+        return payload
+
     def new_msg_from_queue(self, queue_code):
         logging.debug('reached new_msg_from_queue')
         logging.debug('checking queue [%s]' % queue_code)
@@ -166,7 +194,6 @@ class PgQAPI (object):
             return None
         msg_id = ds[0][0]
         logging.debug('found new message id [%s], [%s] new messages in queue' % (msg_id, ds[0][1]) )
-        logging.debug('setting status of message to A')
         payload = self.msg_proc_start(msg_id)
-        return payload
+        return payload, msg_id
         
