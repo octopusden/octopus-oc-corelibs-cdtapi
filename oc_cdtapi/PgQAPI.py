@@ -197,20 +197,6 @@ class PgQAPI (object):
         self.exec_update('update queue_message set proc_end=now(), status=%s where id = %s', ('P', message_id) )
         return payload
 
-    def msg_proc_fail(self, message_id, error_message):
-        logging.debug('reached msg_proc_fail')
-        logging.debug('failing processing of message [%s]' % message_id)
-        ds = self.get_msg(message_id)
-        if not ds:
-            logging.error('message [%s] does not exist' % message_id)
-            return None
-        (msg_status, payload) = ds
-        if msg_status != 'A':
-            logging.error('message [%s] is in bad status [%s]' % (str(message_id), msg_status) )
-            return False
-        self.exec_update('update queue_message set proc_end=now(), status=%s, error_message=%s where id = %s', ('F', message_id, error_message) )
-        return payload
-
     def new_msg_from_queue(self, queue_code):
         logging.debug('reached new_msg_from_queue')
         logging.debug('checking queue [%s]' % queue_code)
