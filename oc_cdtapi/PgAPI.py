@@ -11,6 +11,62 @@ class PostgresAPI(API.HttpAPI):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def get_citypedms_by_citype_id(self, citype):
+        """
+        Retrieve citypedms information for a given CI type ID.
+
+        This method fetches a list of citypedms entries containing id, ci_type_id,
+        dms_id, and gav_template for the specified CI type ID.
+
+        Args:
+            citype (str): The CI type ID to query.
+
+        Returns:
+            dict: A dictionary containing citypedms information with the following keys:
+                - id: The citypedms entry ID
+                - ci_type_id: The CI type ID
+                - dms_id: The DMS ID
+                - gav_template: The GAV (Group:Artifact:Version) template
+
+        Example:
+            >>> citypedms = api.get_citypedms_by_citype_id("CI123")
+            >>> print(citypedms['id'])
+            'CP456'
+        """
+        req = f"rest/api/1/citypedms/{citype}"
+        res = self.get(req).json()
+        logging.debug(f'Using get_citypedms_by_citype_id to get information about {citype}')
+
+        return res
+
+    def get_citypedms_by_dms_id(self, dms_id):
+        """
+        Retrieve citypedms information for a given DMS ID.
+
+        This method fetches a list of citypedms entries containing id, ci_type_id,
+        dms_id, and gav_template for the specified DMS ID (component ID).
+
+        Args:
+            dms_id (str): The DMS ID (component ID) to query.
+
+        Returns:
+            dict: A dictionary containing citypedms information with the following keys:
+                - id: The citypedms entry ID
+                - ci_type_id: The CI type ID
+                - dms_id: The DMS ID
+                - gav_template: The GAV (Group:Artifact:Version) template
+
+        Example:
+            >>> citypedms = api.get_citypedms_by_dms_id("DMS789")
+            >>> print(citypedms['gav_template'])
+            'com.example:{artifact}:{version}'
+        """
+        req = f"rest/api/1/citypedms/{dms_id}?bycomponent=True"
+        res = self.get(req)
+        logging.debug(f'Using get_citypedms_by_dms_id to get information about {dms_id}')
+
+        return res.json()
+
     def get_ci_type_by_code(self, request):
         """
         Retrieve a list of ci type based on the provided ci type code.
