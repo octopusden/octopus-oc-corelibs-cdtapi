@@ -10,6 +10,40 @@ class TestPostgresAPI(unittest.TestCase):
         self.api = PostgresAPI()
 
     @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_citypedms_by_citype_id(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'id': 'CP456',
+            'ci_type_id': 'CI123',
+            'dms_id': 'DMS789',
+            'gav_template': 'com.example:{artifact}:{version}'
+        }
+        mock_get.return_value = mock_response
+
+        result = self.api.get_citypedms_by_citype_id('CI123')
+
+        self.assertEqual(result['id'], 'CP456')
+        self.assertEqual(result['ci_type_id'], 'CI123')
+        mock_get.assert_called_once_with('rest/api/1/citypedms/CI123')
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_citypedms_by_dms_id(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'id': 'CP456',
+            'ci_type_id': 'CI123',
+            'dms_id': 'DMS789',
+            'gav_template': 'com.example:{artifact}:{version}'
+        }
+        mock_get.return_value = mock_response
+
+        result = self.api.get_citypedms_by_dms_id('DMS789')
+
+        self.assertEqual(result['dms_id'], 'DMS789')
+        self.assertEqual(result['gav_template'], 'com.example:{artifact}:{version}')
+        mock_get.assert_called_once_with('rest/api/1/citypedms/DMS789?bycomponent=True')
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
     def test_get_deliveries(self, mock_get):
         mock_response = MagicMock()
         mock_response.json.return_value = [
