@@ -3,6 +3,7 @@
 from setuptools import setup
 
 __version = "3.19.4"
+
 install_requires = [
     "requests",
     "packaging",
