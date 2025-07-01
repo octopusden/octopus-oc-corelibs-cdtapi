@@ -137,7 +137,7 @@ class PgQAPI (object):
             logging.debug('connected. [%s]' % conn)
             return conn
         logging.error('failed to connect')
-        return None
+        raise ConnectionError('Failed to connect to postgres db')
 
     def msg_proc_start(self, message_id):
         # TODO add consumer ip
