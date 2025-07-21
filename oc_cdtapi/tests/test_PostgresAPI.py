@@ -235,6 +235,29 @@ class TestPostgresAPI(unittest.TestCase):
 
         mock_get.assert_called_once_with(f'rest/api/1/clients/{client_code}')
 
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.post')
+    def test_post_new_component(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "message": "Data entry created"
+        }
+        mock_post.return_value = mock_response
+
+        mock_payload = {
+            "ci_type_id": "NEWDSTR",
+            "ci_type_group_id": "NEW",
+            "name": "New component",
+            "is_standard": "Y",
+            "is_deliverable": True,
+            "regexp": "test.regexp.NEWDSTR:dstr:com",
+            "loc_type_id": "NXS",
+            "dms_id": "NEWDSTR"
+        }
+
+        self.api.post_new_component(mock_payload)
+
+        mock_post.assert_called_once_with(f'rest/api/1/manage_citype', json=mock_payload)
+
 
 if __name__ == '__main__':
     unittest.main()

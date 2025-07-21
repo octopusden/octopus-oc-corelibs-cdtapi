@@ -402,3 +402,36 @@ class PostgresAPI(API.HttpAPI):
         res = self.get(req)
 
         return res.json()
+
+    def post_new_component(self, payload):
+        """
+        Post new component to the ci database.
+
+        This method sends a POST request to add new component into ci database.
+
+        Args:
+            payload : New component payload.
+
+        Returns:
+            requests.Response: The response object from the API call.
+
+        Example:
+            >>> payload = {
+                        "ci_type_id": "NEWDSTR",
+                        "ci_type_group_id": "NEW",
+                        "name": "New component",
+                        "is_standard": "Y",
+                        "is_deliverable": True,
+                        "regexp": "test.regexp.NEWDSTR:dstr:com",
+                        "loc_type_id": "NXS",
+                        "dms_id": "NEWDSTR"
+            }
+            >>> result = self.post_new_component(payload)
+            >>> print(result.status_code)
+            200
+        """
+        req = f"rest/api/1/manage_citype"
+        res = self.post(req, json=payload)
+        logging.debug(f'Using post_manage_citype to register new component')
+
+        return res
