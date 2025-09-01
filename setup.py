@@ -2,12 +2,13 @@
 
 from setuptools import setup
 
-__version = "3.20.0"
+__version = "3.21.2"
 
 install_requires = [
     "requests",
     "packaging",
-    "psycopg2-binary"
+    "psycopg2-binary",
+    "hvac"
 ]
 tests_require = []
 
