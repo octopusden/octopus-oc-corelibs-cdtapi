@@ -58,7 +58,7 @@ class TestVaultAPI(unittest.TestCase):
 
     @patch('os.getenv')
     def test_load_secret_fallback_env(self, mock_getenv):
-        mock_getenv.side_effect = lambda key: "success_get_data_from_env" if key == "DB_USER" else None
+        mock_getenv.side_effect = lambda key, default=None: ("success_get_data_from_env" if key == "DB_USER" else default)
         vault = VaultAPI(vault_enable=False)
 
         result = vault.load_secret("DB_USER")
