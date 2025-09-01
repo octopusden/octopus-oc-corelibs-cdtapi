@@ -58,5 +58,5 @@ class VaultAPI:
             logging.warning(f"Failed getting data from vault: {e}")
             return None
 
-    def load_secret(self, name):
-        return self.get_secret_from_path(name) or os.getenv(name)
+    def load_secret(self, name, default=None):
+        return self.get_secret_from_path(name) or os.getenv(name, default)
