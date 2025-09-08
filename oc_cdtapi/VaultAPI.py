@@ -63,24 +63,8 @@ class VaultAPI:
             return None
 
         secret_path, credentials = self.parse_secret_name(name)
-        try:
-            response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
-            return response['data']['data'].get(credentials)
-        except VaultError as e:
-            logging.warning(f"Failed getting data from vault: {e}")
-            return None
-
-    def get_staging_secret_from_path(self, name):
-        client = self.client
-        if client is None:
-            return None
-
-        secret_path, credentials = self.parse_secret_name(name)
-        try:
-            response = client.secrets.kv.read_secret_version(path=secret_path + "_TEST", mount_point=self.mount_point)
-            return response['data']['data'].get(credentials)
-        except VaultError as e:
-            logging.warning(f"failed getting data for secret path {secret_path + '_TEST'}, trying to take from default secret")
+        if self.use_staging_secrets:
+            secret_path = secret_path + "_TEST"
 
         try:
             response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
@@ -90,7 +74,4 @@ class VaultAPI:
             return None
 
     def load_secret(self, name, default=None):
-        if self.use_staging_secrets:
-            return self.get_staging_secret_from_path(name) or os.getenv(name, default)
-
         return self.get_secret_from_path(name) or os.getenv(name, default)
