@@ -6,13 +6,14 @@ from oc_cdtapi.VaultAPI import VaultAPI
 class TestVaultAPI(unittest.TestCase):
     @patch('os.getenv')
     def setUp(self, mock_getenv):
-        mock_getenv.side_effect = lambda key: {
+        mock_getenv.side_effect = lambda key, default=None: {
             "VAULT_ENABLE": "true",
             "VAULT_URL": "http://127.0.0.1:8200",
             "VAULT_TOKEN": "dummy_token",
             "VAULT_PATH": "secret/data/myapp",
-            "VAULT_MOUNT_POINT": "secret"
-        }.get(key)
+            "VAULT_MOUNT_POINT": "secret",
+            "USE_STAGING_ENVIRONMENT": "false"
+        }.get(key, default)
 
         self.vault = VaultAPI()
 
@@ -44,15 +45,15 @@ class TestVaultAPI(unittest.TestCase):
         mock_client = MagicMock()
         mock_client.is_authenticated.return_value = True
         mock_client.secrets.kv.read_secret_version.return_value = {
-            'data': {'data': {'DB_PASSWORD': 's3cr3t'}}
+            'data': {'data': {'PASSWORD': 's3cr3t'}}
         }
         mock_client_class.return_value = mock_client
 
-        result = self.vault.get_secret_from_path("DB_PASSWORD")
+        result = self.vault.load_secret("DB_PASSWORD")
         self.assertEqual(result, "s3cr3t")
 
         mock_client.secrets.kv.read_secret_version.assert_called_once_with(
-            path="secret/data/myapp",
+            path="DB",
             mount_point="secret"
         )
 

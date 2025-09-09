@@ -9,14 +9,13 @@ class VaultAPI:
                  vault_enable=False,
                  vault_url=None,
                  vault_token=None,
-                 vault_path=None,
                  vault_mount_point=None,
                  verify_ssl=True):
         self.vault_enable = vault_enable or os.getenv("VAULT_ENABLE")
         self.vault_url = vault_url or os.getenv("VAULT_URL")
         self.vault_token = vault_token or os.getenv("VAULT_TOKEN")
-        self.vault_path = vault_path or os.getenv("VAULT_PATH")
         self.mount_point = vault_mount_point or os.getenv("VAULT_MOUNT_POINT")
+        self.use_staging_secrets = os.getenv("USE_STAGING_ENVIRONMENT", "false").lower() == "true" #Check whether we have env USE_STAGING_ENVIRONMENT true or not
         self.verify_ssl = verify_ssl
         self._client = None
 
@@ -46,16 +45,31 @@ class VaultAPI:
 
         return self._client
 
+    def parse_secret_name(self, name):
+        if 'USER' in name:
+            split_name = name.split('_USER')[0]
+            return split_name, 'USER'
+
+        if 'PASSWORD' in name:
+            split_name = name.split('_PASSWORD')[0]
+            return split_name, 'PASSWORD'
+
+        return 'OTHER', name
+
     def get_secret_from_path(self, name):
         client = self.client
         if client is None:
             return None
 
+        secret_path, credentials = self.parse_secret_name(name)
+        if self.use_staging_secrets:
+            secret_path = secret_path + "_TEST"
+
         try:
-            response = client.secrets.kv.read_secret_version(path=self.vault_path, mount_point=self.mount_point)
-            return response['data']['data'].get(name)
+            response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
+            return response['data']['data'].get(credentials)
         except VaultError as e:
-            logging.warning(f"Failed getting data from vault: {e}")
+            logging.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
 
     def load_secret(self, name, default=None):
