@@ -10,13 +10,12 @@ class VaultAPI:
                  vault_url=None,
                  vault_token=None,
                  vault_mount_point=None,
-                 use_staging_secrets=False,
                  verify_ssl=True):
         self.vault_enable = vault_enable or os.getenv("VAULT_ENABLE")
         self.vault_url = vault_url or os.getenv("VAULT_URL")
         self.vault_token = vault_token or os.getenv("VAULT_TOKEN")
-        self.use_staging_secrets = use_staging_secrets or os.getenv("USE_STAGING_ENVIRONMENT") == "true"
         self.mount_point = vault_mount_point or os.getenv("VAULT_MOUNT_POINT")
+        self.use_staging_secrets = os.getenv("USE_STAGING_ENVIRONMENT", "false").lower() == "true" #Check whether we have env USE_STAGING_ENVIRONMENT true or not
         self.verify_ssl = verify_ssl
         self._client = None
 
@@ -70,7 +69,7 @@ class VaultAPI:
             response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
             return response['data']['data'].get(credentials)
         except VaultError as e:
-            logging.warning(f"Failed getting data from vault: {e}")
+            logging.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
 
     def load_secret(self, name, default=None):

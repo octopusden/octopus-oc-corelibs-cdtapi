@@ -6,13 +6,14 @@ from oc_cdtapi.VaultAPI import VaultAPI
 class TestVaultAPI(unittest.TestCase):
     @patch('os.getenv')
     def setUp(self, mock_getenv):
-        mock_getenv.side_effect = lambda key: {
+        mock_getenv.side_effect = lambda key, default=None: {
             "VAULT_ENABLE": "true",
             "VAULT_URL": "http://127.0.0.1:8200",
             "VAULT_TOKEN": "dummy_token",
             "VAULT_PATH": "secret/data/myapp",
-            "VAULT_MOUNT_POINT": "secret"
-        }.get(key)
+            "VAULT_MOUNT_POINT": "secret",
+            "USE_STAGING_ENVIRONMENT": "false"
+        }.get(key, default)
 
         self.vault = VaultAPI()
 
