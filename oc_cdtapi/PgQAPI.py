@@ -190,7 +190,7 @@ class PgQAPI (object):
         if not queue_id:
             logging.error('queue [%s] does not exist' % queue_code)
             return None
-        ds = self.exec_select('select min(id), count(id) from queue_message where queue_type__oid = %s and status = %s', (queue_id, 'N') )
+        ds = self.exec_select('select min(id), count(id) from queue_message where creation_date < current_timestamp - interval \'1 minute\' and queue_type__oid = %s and status = %s', (queue_id, 'N') )
         if ds[0][1] == 0:
             logging.debug('currently no new messages in queue [%s]' % queue_code)
             return None
