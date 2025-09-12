@@ -19,18 +19,21 @@ class VaultAPI:
         self.verify_ssl = verify_ssl
         self._client = None
 
+        # Create a logger instance for this class
+        self.logger = logging.getLogger(__name__)
+        
     @property
     def client(self):
         if not self.vault_enable:
-            logging.warning("VAULT_ENABLE environment set to false, skip using vault")
+            self.logger.warning("VAULT_ENABLE environment set to false, skip using vault")
             return None
 
         if self._client is None:
             if not self.vault_url:
-                logging.warning("VAULT_URL environment variable or vault_url parameter is missing, skip using vault")
+                self.logger.warning("VAULT_URL environment variable or vault_url parameter is missing, skip using vault")
                 return None
             if not self.vault_token:
-                logging.warning("VAULT_TOKEN environment variable or vault_token parameter is missing, skip using vault")
+                self.logger.warning("VAULT_TOKEN environment variable or vault_token parameter is missing, skip using vault")
                 return None
 
             self._client = hvac.Client(
@@ -40,7 +43,7 @@ class VaultAPI:
             )
 
             if not self._client.is_authenticated():
-                logging.warning("Failed to authenticate with Vault - check credentials, skip using vault")
+                self.logger.warning("Failed to authenticate with Vault - check credentials, skip using vault")
                 return None
 
         return self._client
@@ -69,7 +72,7 @@ class VaultAPI:
             response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
             return response['data']['data'].get(credentials)
         except VaultError as e:
-            logging.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
+            self.logger.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
 
     def load_secret(self, name, default=None):
