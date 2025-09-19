@@ -122,6 +122,26 @@ class PgQAPI (object):
             return None
 
     def pg_connect(self, url=None, username=None, password=None):
+        """
+        Create and return a psycopg2 PostgreSQL connection.
+        
+        If url is None, the connection parameters are read from the environment variables
+        PSQL_MQ_URL, PSQL_MQ_USER, and PSQL_MQ_PASSWORD. Otherwise the provided url,
+        username, and password are used to build the DSN.
+        
+        The returned connection has autocommit enabled.
+        
+        Parameters:
+            url (str|None): Host/host:port[/dbname] portion of the DSN or None to use env vars.
+            username (str|None): Database user name (required if url is provided).
+            password (str|None): Database password (required if url is provided).
+        
+        Returns:
+            psycopg2.extensions.connection: A live PostgreSQL connection with autocommit=True.
+        
+        Raises:
+            ConnectionError: If a connection object is not obtained after attempting to connect.
+        """
         logging.debug('reached pg_connect')
         if (url is None):
             logging.debug('constructing dsn from env variables')
