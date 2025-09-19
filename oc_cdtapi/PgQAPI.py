@@ -135,6 +135,8 @@ class PgQAPI (object):
         conn = psycopg2.connect(dsn)
         if conn:
             logging.debug('connected. [%s]' % conn)
+            logging.debug('setting autocommit to True')
+            conn.set_session(autocommit=True)
             return conn
         logging.error('failed to connect')
         raise ConnectionError('Failed to connect to postgres db')
