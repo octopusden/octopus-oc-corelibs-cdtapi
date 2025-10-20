@@ -2,6 +2,8 @@ import json
 import logging
 import posixpath
 import re
+import time
+from time import sleep
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
 from collections import namedtuple, defaultdict
@@ -1244,3 +1246,97 @@ class ForemanAPI(HttpAPI):
         pl['host'] = {}
         pl['host']['owner_id'] = owner_id
         self.update_host(hostname, pl)
+
+    def get_job_template_id(self, template_name):
+        """
+        Get template ID by name. Cache results to avoid repeated API calls.
+        :param template_name: str
+        :return template_id: int
+        """
+        logging.debug('Reached get_job_template_id')
+        if not hasattr(self, '_template_cache'):
+            self._template_cache = {}
+
+        if template_name in self._template_cache:
+            return self._template_cache[template_name]
+
+        response = self.get(posixpath.join("job_templates"), params={'per_page': 'all'})
+        templates = response.json()["results"]
+
+        for job in templates:
+            self._template_cache[job["name"]] = job["id"]
+
+        template_id = self._template_cache.get(template_name)
+        if not template_id:
+            raise ForemanAPIError(f"Job template '{template_name}' not found")
+
+        logging.debug(f"Template id for [{template_name}] is [{template_id}]")
+        return template_id
+
+    def send_job_invocation(self, task_name, vm_name, **inputs):
+        """
+        Send a job invocation for a specific task and VM.
+        :param task_name: str
+        :param vm_name: str
+        :param **inputs: kwargs
+        :return job_id
+        """
+        logging.debug('Reached send_job_invocation')
+        task_configs = {
+            "resize_partition": {
+                "template_name": "Run \"cdt-resize-partition\" role CDT",
+                "description": "Partition Resizing"
+            }
+        }
+
+        config = task_configs.get(task_name)
+        if not config:
+            raise ForemanAPIError(f"Unknown task: {task_name}")
+
+        logging.debug(f"config for [{task_name}] is [{config}]")
+
+        template_id = self.get_job_template_id(config["template_name"])
+
+        payload = {
+            "job_invocation": {
+                "job_template_id": template_id,
+                "targeting_type": "static_query",
+                "search_query": f'name = "{vm_name}"',
+                "description_format": config["description"],
+                "inputs": inputs,
+                "ansible": {
+                    "tags": "",
+                    "tags_flag": "include"
+                }
+            }
+        }
+
+        logging.debug(f"About to send job invocations with following request [{payload}]")
+        response = self.post(
+            posixpath.join("job_invocations"),
+            headers=self.headers,
+            json=payload
+        )
+
+        return response.json()["id"]
+
+    def is_job_invocation_success(self, job_id, timeout=300, poll_interval=5):
+        """
+        Get a job status by given id.
+        :param job_id: str
+        :param timeout: int
+        :param poll_interval: int
+        :return status: bool
+        """
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > timeout:
+                raise ForemanAPIError(f"Job {job_id} timed out after {timeout} seconds")
+            response = self.get(posixpath.join("job_invocations", str(job_id)))
+            is_pending = bool(response.json().get("pending", False))
+            if not is_pending:
+                break
+            logging.debug(f"job still pending, sleeping for {poll_interval} second")
+            sleep(poll_interval)
+
+        return bool(response.json().get("succeeded", False))

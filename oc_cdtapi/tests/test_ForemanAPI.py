@@ -108,6 +108,12 @@ class _ForemanAPI(ForemanAPI):
             return '{"description": "Test Provider", "compute_attributes": [{"attributes": {"availability_zone": "nova"}}]}'
         elif re.match('.+\/vm_compute_attributes', url):
             return '{"volumes_attributes": {"0": {"size_gb": 100}}}'
+        elif re.match('.+\/job_templates', url):
+            return '{"results": [{"id": 215, "name": "Run \\"cdt-resize-partition\\" role CDT"}]}'
+        elif re.match('.+\/job_invocations/999', url):
+            return '{"succeeded": 1, "pending": 0}'
+        elif re.match('.+\/job_invocations', url):
+            return '{"id": 999, "status": "ok"}'
         return '[]'
 
 class TestForemanAPI(unittest.TestCase):
@@ -242,6 +248,17 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_host_disk_size(self):
         disk_size = self.api.get_host_disk_size("test2")
         self.assertEqual(disk_size, 100)
+
+    def test_get_job_template_id(self):
+        response = self.api.get_job_template_id("Run \"cdt-resize-partition\" role CDT")
+        self.assertEqual(response, 215)
+
+    def test_send_job_invocation(self):
+        self.api.send_job_invocation("resize_partition", "test-vm")
+
+    def test_is_job_invocation_success(self):
+        status = self.api.is_job_invocation_success("999")
+        self.assertTrue(status)
 
     def test_set_host_owner(self):
         self.api.set_host_owner('test-host-name', 'user1')
