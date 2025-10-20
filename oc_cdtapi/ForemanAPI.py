@@ -1279,6 +1279,7 @@ class ForemanAPI(HttpAPI):
         :param task_name: str
         :param vm_name: str
         :param **inputs: kwargs
+        :return job_id
         """
         logging.debug('Reached send_job_invocation')
         task_configs = {
@@ -1311,11 +1312,13 @@ class ForemanAPI(HttpAPI):
         }
 
         logging.debug(f"About to send job invocations with following request [{payload}]")
-        return self.post(
+        response = self.post(
             posixpath.join("job_invocations"),
             headers=self.headers,
             json=payload
         )
+
+        return response.json()["id"]
 
     def is_job_invocation_success(self, job_id, timeout=300, poll_interval=5):
         """
@@ -1333,7 +1336,7 @@ class ForemanAPI(HttpAPI):
             is_pending = bool(response.json().get("pending", False))
             if not is_pending:
                 break
-            logging.debug("job still pending, sleeping for 5 second")
+            logging.debug(f"job still pending, sleeping for {poll_interval} second")
             sleep(poll_interval)
 
         return bool(response.json().get("succeeded", False))
