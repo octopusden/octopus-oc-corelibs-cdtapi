@@ -1177,6 +1177,17 @@ class ForemanAPI(HttpAPI):
         logging.debug('Passing to get_host_uuid_v1')
         return self.get_host_uuid_v1(hostname)
 
+    def get_host_disk_size(self, hostname):
+        """
+        :param hostname: str
+        :return: int
+        """
+        logging.debug('Reached get_host_compute_attributes')
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        data = response.json()
+
+        return int(data["volumes_attributes"]["0"]["size_gb"])
+
     def get_all_users(self):
         """
         :return: list
