@@ -1177,6 +1177,25 @@ class ForemanAPI(HttpAPI):
         logging.debug('Passing to get_host_uuid_v1')
         return self.get_host_uuid_v1(hostname)
 
+    def get_host_disk_size(self, hostname):
+        """
+        :param hostname: str
+        :return: int
+        """
+        logging.debug('Reached get_host_disk_size')
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        data = response.json()
+        try:
+            volumes = data.get("volumes_attributes", {})
+            volume = volumes.get("0") or volumes.get(0)
+            if volume and "size_gb" in volume:
+                return int(volume["size_gb"])
+            logging.error('Could not find size_gb in vm_compute_attributes for [%s]' % hostname)
+            return None
+        except (KeyError, ValueError, TypeError) as e:
+            logging.error('Error parsing disk size for [%s]: %s' % (hostname, e))
+            return None
+
     def get_all_users(self):
         """
         :return: list

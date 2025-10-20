@@ -106,6 +106,8 @@ class _ForemanAPI(ForemanAPI):
             return '{"description": "Test Provider", "compute_attributes": [{"attributes": {"tenant_id": "aeea0ca2b1ab449e86fd7b4295455ecf"}}]}'
         elif re.match('.+\/compute_resources/2$', url):
             return '{"description": "Test Provider", "compute_attributes": [{"attributes": {"availability_zone": "nova"}}]}'
+        elif re.match('.+\/vm_compute_attributes', url):
+            return '{"volumes_attributes": {"0": {"size_gb": 100}}}'
         return '[]'
 
 class TestForemanAPI(unittest.TestCase):
@@ -236,6 +238,10 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_host_uuid(self):
         uuid = self.api.get_host_uuid("test2")
         self.assertIsNone(uuid)
+
+    def test_get_host_disk_size(self):
+        disk_size = self.api.get_host_disk_size("test2")
+        self.assertEqual(disk_size, 100)
 
     def test_set_host_owner(self):
         self.api.set_host_owner('test-host-name', 'user1')
