@@ -1258,7 +1258,7 @@ class ForemanAPI(HttpAPI):
         if template_name in self._template_cache:
             return self._template_cache[template_name]
 
-        response = self.get(posixpath.join("job_templates"))
+        response = self.get(posixpath.join("job_templates"), params={'per_page': 'all'})
         templates = response.json()["results"]
 
         for job in templates:
