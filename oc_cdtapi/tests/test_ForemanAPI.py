@@ -110,6 +110,8 @@ class _ForemanAPI(ForemanAPI):
             return '{"volumes_attributes": {"0": {"size_gb": 100}}}'
         elif re.match('.+\/job_templates', url):
             return '{"results": [{"id": 215, "name": "Run \\"cdt-resize-partition\\" role CDT"}]}'
+        elif re.match('.+\/job_invocations/999', url):
+            return '{"succeeded": 1, "pending": 0}'
         elif re.match('.+\/job_invocations', url):
             return '{"id": 999, "status": "ok"}'
         return '[]'
@@ -253,6 +255,10 @@ class TestForemanAPI(unittest.TestCase):
 
     def test_send_job_invocation(self):
         self.api.send_job_invocation("resize_partition", "test-vm")
+
+    def test_is_job_invocation_success(self):
+        status = self.api.is_job_invocation_success("999")
+        self.assertTrue(status)
 
     def test_set_host_owner(self):
         self.api.set_host_owner('test-host-name', 'user1')

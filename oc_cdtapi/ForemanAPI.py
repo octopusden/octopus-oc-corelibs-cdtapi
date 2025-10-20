@@ -2,6 +2,7 @@ import json
 import logging
 import posixpath
 import re
+from time import sleep
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
 from collections import namedtuple, defaultdict
@@ -1314,3 +1315,19 @@ class ForemanAPI(HttpAPI):
             headers=self.headers,
             json=payload
         )
+
+    def is_job_invocation_success(self, job_id):
+        """
+        Get a job status by given id.
+        :param job_id: str
+        :return status: bool
+        """
+        while(True):
+            response = self.get(posixpath.join("job_invocations", str(job_id)))
+            is_pending = bool(response.json()["pending"])
+            if not is_pending:
+                break
+            logging.debug("job still pending, sleeping for 5 second")
+            sleep(5)
+
+        return bool(response.json()["succeeded"])
