@@ -1248,6 +1248,11 @@ class ForemanAPI(HttpAPI):
         self.update_host(hostname, pl)
 
     def set_backup_policy(self, hostname, backup_policy):
+        """
+        Change backup policy
+        :param hostname: str
+        :param backup_policy: str
+        """
         logging.debug('Reached set_backup_policy')
         payload = {
             "parameter": {
