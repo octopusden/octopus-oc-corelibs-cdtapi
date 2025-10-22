@@ -1356,6 +1356,12 @@ class ForemanAPI(HttpAPI):
         return bool(response.json().get("succeeded", False))
 
     def get_parameter_value(self, hostname, parameter_name):
+        """
+        Get a parameter value by given parameter_name.
+        :param hostname: str
+        :param parameter_name: int
+        :return value: str
+        """
         host_info = self.get_host_info(hostname=hostname)
         host_parameters = host_info.get("parameters")
         if not host_parameters:
