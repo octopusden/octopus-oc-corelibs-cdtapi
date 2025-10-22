@@ -264,4 +264,4 @@ class TestForemanAPI(unittest.TestCase):
         self.api.set_host_owner('test-host-name', 'user1')
 
     def test_set_backup_policy(self):
-        self.api.set_host_expiry('test-host-name','WEEKLY_NO_DR')
+        self.api.set_backup_policy('test-host-name','WEEKLY_NO_DR')
