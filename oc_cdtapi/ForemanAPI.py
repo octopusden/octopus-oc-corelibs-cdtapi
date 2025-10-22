@@ -1391,12 +1391,12 @@ class ForemanAPI(HttpAPI):
             }
         }
 
-        if not self.get_parameter_value(hostname=hostname, parameter_name=parameter_name):
+        if self.get_parameter_value(hostname=hostname, parameter_name=parameter_name) is None:
             logging.debug(f"parameter {parameter_name} is not created yet")
             if auto_create:
                 logging.debug(f"creating parameter {parameter_name}")
-                self.post(posixpath.join("hosts", hostname, "parameters"), json=payload)
+                self.post(posixpath.join("hosts", hostname, "parameters"), headers=self.headers, json=payload)
             return
 
         logging.debug(f"updating {parameter_name}")
-        self.put(posixpath.join("hosts", hostname, "parameters", parameter_name), json=payload)
+        self.put(posixpath.join("hosts", hostname, "parameters", parameter_name), headers=self.headers, json=payload)
