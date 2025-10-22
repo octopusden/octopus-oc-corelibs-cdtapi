@@ -121,7 +121,7 @@ class TestForemanAPI(unittest.TestCase):
     def setUp(self):
         self.api = _ForemanAPI()
         self.json_object = json.dumps({"name": "custom_name_test", "is_owned_by": 100})
-    
+
     def test_get_usergroup_id(self):
         group_id = self.api.get_usergroup_id("NEW QA")
         self.assertEqual(group_id, 2)
@@ -179,15 +179,15 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_subnets(self):
         subnets = self.api.get_subnets()
         self.assertEqual(subnets["subnetname"], 64)
-    
+
     def test_get_host_reports(self):
         reports = self.api.get_host_reports("test")
         self.assertEqual(reports["report_id"], 102)
-    
+
     def test_get_report(self):
         report = self.api.get_report(101)
         self.assertEqual(report["result"], "Success")
-    
+
     def test_delete_host(self):
         try:
             self.api.delete_host("test")
@@ -197,7 +197,7 @@ class TestForemanAPI(unittest.TestCase):
     def test_hostgroup_found(self):
         hostgroup_id = self.api.get_hostgroup_id("docker-host")
         self.assertEqual(hostgroup_id, 3)
-    
+
     def test_hostgroup_not_found(self):
         hostgroup_id = self.api.get_hostgroup_id("docker")
         self.assertEqual(hostgroup_id, None)
@@ -209,38 +209,38 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_organization_id_not_found(self):
         organization_id = self.api.get_organization_id("CompanyName2")
         self.assertIsNone(organization_id)
-    
+
     def test_set_host_expiry(self):
         self.api.set_host_expiry('test-host-name','2222-01-22')
 
     def test_get_image_uuid(self):
         uuid = self.api.get_image_uuid("CentOS 7 Test", "CentOS 7.9")
         self.assertEqual("03366eb2-fc38-4813-970d-bd66c0b4cbf4", uuid)
-    
+
     def test_get_image_uuid_not_found(self):
         uuid = self.api.get_image_uuid("CentOS 7", "CentOS 7")
         self.assertIsNone(uuid)
-    
+
     def test_get_flavor_id(self):
         flavor_id = self.api.get_flavor_id(1, "cdt.1.4")
         self.assertEqual("13c5cccf-f907-4861-b367-bee86bec47cd", flavor_id)
-    
+
     def test_get_flavor_id_not_found(self):
         flavor_id = self.api.get_flavor_id(1, "cdt.1.5")
         self.assertIsNone(flavor_id)
-    
+
     def test_get_tenant_id(self):
         tenant_id = self.api.get_tenant_id(1)
         self.assertEqual("aeea0ca2b1ab449e86fd7b4295455ecf", tenant_id)
-    
+
     def test_get_tenant_id_not_found(self):
         tenant_id = self.api.get_tenant_id(2)
         self.assertIsNone(tenant_id)
-    
+
     def test_get_host_uuid(self):
         uuid = self.api.get_host_uuid("test")
         self.assertEqual("50391e80-afde-c4a5-c562-e5af02e5e449", uuid)
-    
+
     def test_get_host_uuid(self):
         uuid = self.api.get_host_uuid("test2")
         self.assertIsNone(uuid)
@@ -262,3 +262,6 @@ class TestForemanAPI(unittest.TestCase):
 
     def test_set_host_owner(self):
         self.api.set_host_owner('test-host-name', 'user1')
+
+    def test_set_backup_policy(self):
+        self.api.set_backup_policy('test-host-name','WEEKLY_NO_DR')

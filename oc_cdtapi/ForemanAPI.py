@@ -73,7 +73,7 @@ class ForemanAPI(HttpAPI):
             return posixpath.join(self.root, "api", req)
         else:
             return posixpath.join(self.root, req)
-            
+
     def get_host_by_owner(self, owner):
         """
         wrapper for api v1/v2
@@ -86,7 +86,7 @@ class ForemanAPI(HttpAPI):
         elif self.apiversion == 2:
             logging.debug('Passing to get_host_by_owner_v2')
             return self.get_host_by_owner_v2(owner)
-        
+
     def get_host_by_owner_v2(self, owner):
         logging.debug('Reached get_host_by_owner_v2')
         logging.debug('owner = [%s]' % owner)
@@ -97,7 +97,7 @@ class ForemanAPI(HttpAPI):
         response = self.get('hosts', params=params).json()
         results = response.get('results')
         return results
-    
+
     def get_environment(self, env_name):
         """
         wrapper for api v1/v2
@@ -245,7 +245,7 @@ class ForemanAPI(HttpAPI):
                        deploy_on, custom_json):
         """
         Creates a host using the default parameters or the ones from an external json
-        note that create_vm in engine actually sends db_task instead of hostname and custom_json, 
+        note that create_vm in engine actually sends db_task instead of hostname and custom_json,
         other parms are ignored
         """
         logging.debug('Reached create_host_v1')
@@ -782,7 +782,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached is_host_powered_on')
         response = self.get(posixpath.join("hosts", hostname, "power")).json()
         return response['state'] == 'on'
-    
+
     def host_power(self, hostname, action):
         """
         wrapper for api v1/v2
@@ -877,7 +877,7 @@ class ForemanAPI(HttpAPI):
         for hostgroup in hostgroups:
             if hostgroup.get("name") == hostgroup_name:
                 return hostgroup.get ('id')
-        
+
         logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
         return None
 
@@ -982,7 +982,7 @@ class ForemanAPI(HttpAPI):
     def set_host_expiry_v1(self, hostname, expiry):
         """
         Attempts to set host expiry date
-        :param hostname: full hostname 
+        :param hostname: full hostname
         :param expiry: expiry date in format yyyy-mm-dd
         """
         logging.debug('Reached set_host_expiry_v1')
@@ -994,7 +994,7 @@ class ForemanAPI(HttpAPI):
     def set_host_expiry_v2(self, hostname, expiry):
         """
         Attempts to set host expiry date
-        :param hostname: full hostname 
+        :param hostname: full hostname
         :param expiry: expiry date in format yyyy-mm-dd
         """
         logging.debug('Reached set_host_expiry_v2')
@@ -1224,14 +1224,14 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached set_host_owner')
         owner_id = self.get_owner(owner)
         owner_type = 'User'
-        
+
         if not owner_id:
             owner_id = self.get_usergroup_id(owner)
             owner_type = 'Usergroup'
-            
+
         if not owner_id:
             raise ForemanAPIError(f"The owner [{owner}] is not found")
-            
+
         self.update_host(hostname, {"host": {"owner_id": owner_id, "owner_type": owner_type}})
 
 
@@ -1246,6 +1246,20 @@ class ForemanAPI(HttpAPI):
         pl['host'] = {}
         pl['host']['owner_id'] = owner_id
         self.update_host(hostname, pl)
+
+    def set_backup_policy(self, hostname, backup_policy):
+        """
+        Change backup policy
+        :param hostname: str
+        :param backup_policy: str
+        """
+        logging.debug('Reached set_backup_policy')
+        payload = {
+            "parameter": {
+                "value": backup_policy
+            }
+        }
+        self.update_host(hostname=hostname, payload=payload)
 
     def get_job_template_id(self, template_name):
         """
