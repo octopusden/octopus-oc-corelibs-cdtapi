@@ -1354,3 +1354,15 @@ class ForemanAPI(HttpAPI):
             sleep(poll_interval)
 
         return bool(response.json().get("succeeded", False))
+
+    def get_parameter_value(self, hostname, parameter_name):
+        host_info = self.get_host_info(hostname=hostname)
+        host_parameters = host_info.get("parameters")
+        if not host_parameters:
+            return None
+
+        for host_parameter in host_parameters:
+            if host_parameter["name"] == parameter_name:
+                return host_parameter["value"]
+
+        return None
