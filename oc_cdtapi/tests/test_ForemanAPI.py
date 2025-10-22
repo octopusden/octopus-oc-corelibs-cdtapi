@@ -275,3 +275,6 @@ class TestForemanAPI(unittest.TestCase):
     def test_get_parameter_value_empty(self):
         value = self.api.get_parameter_value("test-parameter", "client-name")
         self.assertIsNone(value)
+
+    def test_set_parameter_value(self):
+        self.api.set_parameter_value("test-parameter", "test-name", "test-value")

@@ -1359,9 +1359,10 @@ class ForemanAPI(HttpAPI):
         """
         Get a parameter value by given parameter_name.
         :param hostname: str
-        :param parameter_name: int
+        :param parameter_name: str
         :return value: str
         """
+        logging.debug('Reached get_parameter_value')
         host_info = self.get_host_info(hostname=hostname)
         host_parameters = host_info.get("parameters")
         if not host_parameters:
@@ -1372,3 +1373,30 @@ class ForemanAPI(HttpAPI):
                 return host_parameter["value"]
 
         return None
+
+    def set_parameter_value(self, hostname, parameter_name, parameter_value, auto_create=False):
+        """
+        Set a parameter value by given parameter_name and parameter_value.
+        Also, auto_create option will automatically create the parameter if not appear.
+        :param hostname: str
+        :param parameter_name: str
+        :param parameter_value: str
+        :param auto_create: bool
+        """
+        logging.debug('Reached set_parameter_value')
+        payload = {
+            "parameter": {
+                "name": parameter_name,
+                "value": parameter_value
+            }
+        }
+
+        if not self.get_parameter_value(hostname=hostname, parameter_name=parameter_name):
+            logging.debug(f"parameter {parameter_name} is not created yet")
+            if auto_create:
+                logging.debug(f"creating parameter {parameter_name}")
+                self.post(posixpath.join("hosts", hostname, "parameters"), json=payload)
+            return
+
+        logging.debug(f"updating {parameter_name}")
+        self.put(posixpath.join("hosts", hostname, "parameters", parameter_name), json=payload)
