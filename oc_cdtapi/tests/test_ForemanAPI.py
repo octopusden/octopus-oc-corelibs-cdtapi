@@ -74,6 +74,8 @@ class _ForemanAPI(ForemanAPI):
             return '{"name": "test_stand", "uuid": "50391e80-afde-c4a5-c562-e5af02e5e449"}'
         elif re.match('.+\/hosts/test2$',url):
             return '{"name": "test_stand_2"}'
+        elif re.match('.+\/hosts/test-parameter$',url):
+            return '{"name": "test_parameter", "parameters": [{"name": "client-code", "value": "_TEST"}]}'
         elif re.match('.+\/status', url):
             return '{"result":"ok","status":200,"version":"2.5.4","api_version":2}'
         elif re.match('.+\/puppetclasses/test_class', url):
@@ -265,3 +267,11 @@ class TestForemanAPI(unittest.TestCase):
 
     def test_set_backup_policy(self):
         self.api.set_backup_policy('test-host-name','WEEKLY_NO_DR')
+
+    def test_get_parameter_value(self):
+        value = self.api.get_parameter_value("test-parameter", "client-code")
+        self.assertEqual(value, "_TEST")
+
+    def test_get_parameter_value_empty(self):
+        value = self.api.get_parameter_value("test-parameter", "client-name")
+        self.assertIsNone(value)
