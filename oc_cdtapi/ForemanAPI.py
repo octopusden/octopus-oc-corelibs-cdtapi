@@ -1359,8 +1359,8 @@ class ForemanAPI(HttpAPI):
         """
         Get a parameter value by given parameter_name.
         :param hostname: str
-        :param parameter_name: str or list - Single parameter name or list of parameter names
-        :return value: str or dict - Single value if parameter_name is str, dict of {name: value} if list
+        :param parameter_name: str or list/tuple - Single parameter name or list/tuple of parameter names
+        :return: dict or None - Dict of {name: value} for found parameters, None if none found
         """
         host_info = self.get_host_info(hostname=hostname)
         host_parameters = host_info.get("parameters")
@@ -1376,8 +1376,9 @@ class ForemanAPI(HttpAPI):
             return None
 
         elif isinstance(parameter_name, (list, tuple)):
+            param_set = set(parameter_name)
             for host_parameter in host_parameters:
-                if host_parameter["name"] in parameter_name:
+                if host_parameter["name"] in param_set:
                     result[host_parameter["name"]] = host_parameter["value"]
             return result if result else None
 

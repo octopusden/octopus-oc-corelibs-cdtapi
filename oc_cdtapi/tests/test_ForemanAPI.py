@@ -273,7 +273,7 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(response, {"client-code": "_TEST"})
 
     def test_get_multiple_parameter_value(self):
-        response = self.api.get_parameter_value("test-parameter", ["client-code", "client-region"])
+        response = self.api.get_parameter_value("test-parameter", ["client-code", "client-region", "test"])
         self.assertEqual(response, {"client-code": "_TEST", "client-region": "EARTH"})
 
     def test_get_parameter_value_empty(self):
