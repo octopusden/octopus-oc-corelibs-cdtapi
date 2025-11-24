@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 from packaging import version
 
 class ForemanAPIError(HttpAPIError):
-    pass
+    def __str__(self):
+        return self.text
 
 
 class ForemanAPI(HttpAPI):
@@ -285,10 +286,10 @@ class ForemanAPI(HttpAPI):
             default_params.update(custom)
 
         if not default_params["is_owned_by"]:
-            raise ForemanAPIError("The owner id is not specified")
+            raise ForemanAPIError(code=400, text="The owner id is not specified")
 
         if not default_params["name"]:
-            raise ForemanAPIError("The hostname is not specified")
+            raise ForemanAPIError(code=400, text="The hostname is not specified")
 
         logging.debug("ForemanAPI is about to send the following payload:")
         logging.debug(default_params)
@@ -343,10 +344,10 @@ class ForemanAPI(HttpAPI):
             default_params.update(custom)
 
         if not default_params["is_owned_by"]:
-            raise ForemanAPIError("The owner id is not specified")
+            raise ForemanAPIError(code=400, text="The owner id is not specified")
 
         if not default_params["name"]:
-            raise ForemanAPIError("The hostname is not specified")
+            raise ForemanAPIError(code=400, text="The hostname is not specified")
 
         if not default_params.get('hostgroup_id'):
             hostgroup = self.get_hostgroup_id('stands')
@@ -628,7 +629,7 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached override_smart_class_v1')
         request = self.post(posixpath.join("smart_class_parameters", str(scid),
-            "override_values"), headers=self.headers, data=params)
+                                           "override_values"), headers=self.headers, data=params)
 
     def override_smart_class_v2(self, scid, params):
         """
@@ -699,7 +700,8 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached add_puppet_class_to_host_v2')
         logging.debug('Params to be sent: %s' % params)
-        response = self.post(posixpath.join('foreman_puppet', 'api', 'hosts', hostname, 'puppetclass_ids'), headers=self.headers, data=params)
+        response = self.post(posixpath.join('foreman_puppet', 'api', 'hosts', hostname, 'puppetclass_ids'),
+                             headers=self.headers, data=params)
 
     def get_subnets(self):
         """
@@ -804,7 +806,7 @@ class ForemanAPI(HttpAPI):
         actions = ["start", "stop"]
 
         if action not in actions:
-            raise ForemanAPIError("500 - Incorrect power action was provided")
+            raise ForemanAPIError(code=500, text="Incorrect power action was provided")
 
         params = json.dumps({"power_action": action})
         request = self.put(posixpath.join("hosts", hostname, "power"), headers=self.headers, data=params)
@@ -816,7 +818,7 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached host_power_v2')
         actions = ["on", "off"]
         if action not in actions:
-            raise ForemanAPIError("500 - Incorrect power action was provided")
+            raise ForemanAPIError(code=500, text="Incorrect power action was provided")
         params = json.dumps({"power_action": action})
         request = self.put(posixpath.join('hosts', hostname, "power"), headers=self.headers, data=params)
         if not request.status_code == 200:
@@ -876,7 +878,7 @@ class ForemanAPI(HttpAPI):
 
         for hostgroup in hostgroups:
             if hostgroup.get("name") == hostgroup_name:
-                return hostgroup.get ('id')
+                return hostgroup.get('id')
 
         logging.debug("Hostgroup [%s] not found, returning None" % hostgroup_name)
         return None
@@ -1061,7 +1063,7 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_flavor_id_v1')
         flavors_list = self.get(posixpath.join("compute_resources", str(compute_resource_id),
-            "available_flavors")).json()["results"]
+                                               "available_flavors")).json()["results"]
 
         try:
             flavor_id = next(flavor["id"] for flavor in flavors_list if flavor["name"] == flavor_name)
@@ -1230,10 +1232,9 @@ class ForemanAPI(HttpAPI):
             owner_type = 'Usergroup'
 
         if not owner_id:
-            raise ForemanAPIError(f"The owner [{owner}] is not found")
+            raise ForemanAPIError(code=404, text=f"The owner [{owner}] is not found")
 
         self.update_host(hostname, {"host": {"owner_id": owner_id, "owner_type": owner_type}})
-
 
     def set_host_owner_id(self, hostname, owner_id):
         """
@@ -1282,7 +1283,7 @@ class ForemanAPI(HttpAPI):
 
         template_id = self._template_cache.get(template_name)
         if not template_id:
-            raise ForemanAPIError(f"Job template '{template_name}' not found")
+            raise ForemanAPIError(code=404, text=f"Job template '{template_name}' not found")
 
         logging.debug(f"Template id for [{template_name}] is [{template_id}]")
         return template_id
@@ -1305,7 +1306,7 @@ class ForemanAPI(HttpAPI):
 
         config = task_configs.get(task_name)
         if not config:
-            raise ForemanAPIError(f"Unknown task: {task_name}")
+            raise ForemanAPIError(code=404, text=f"Unknown task: {task_name}")
 
         logging.debug(f"config for [{task_name}] is [{config}]")
 
@@ -1345,7 +1346,7 @@ class ForemanAPI(HttpAPI):
         start_time = time.time()
         while True:
             if time.time() - start_time > timeout:
-                raise ForemanAPIError(f"Job {job_id} timed out after {timeout} seconds")
+                raise ForemanAPIError(code=500, text=f"Job {job_id} timed out after {timeout} seconds")
             response = self.get(posixpath.join("job_invocations", str(job_id)))
             is_pending = bool(response.json().get("pending", False))
             if not is_pending:
