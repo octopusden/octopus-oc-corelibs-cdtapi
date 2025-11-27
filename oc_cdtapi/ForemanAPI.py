@@ -23,7 +23,10 @@ class ForemanAPI(HttpAPI):
     _error = ForemanAPIError
     _env_prefix = "FOREMAN"
 
-    headers = {"Accept": "version=2,application/json", "Content-Type": "application/json"}
+    headers = {
+        "Accept": "application/json;version=2",
+        "Content-Type": "application/json"
+    }
 
     def __init__(self, *args, **kwargs):
         """
@@ -70,7 +73,7 @@ class ForemanAPI(HttpAPI):
         return self.__foreman_version_major
 
     def re(self, req):
-        if not req.startswith("foreman_puppet"):
+        if not req.startswith(("foreman_puppet", "ansible")):
             return posixpath.join(self.root, "api", req)
         else:
             return posixpath.join(self.root, req)
@@ -1411,3 +1414,143 @@ class ForemanAPI(HttpAPI):
 
         logging.debug(f"updating {parameter_name}")
         self.put(posixpath.join("hosts", hostname, "parameters", parameter_name), headers=self.headers, json=payload)
+
+    def get_host_ansible_roles(self, hostname):
+        """
+        Get ansible role from host.
+        :param hostname: str
+        """
+        logging.debug('Reached get_host_ansible_roles')
+
+        response = self.get(posixpath.join("hosts", hostname, "ansible_roles"), headers=self.headers)
+        roles = response.json()
+
+        return roles
+
+    def get_ansible_role(self, roles=None):
+        """
+        Get ansible role id by its name.
+        :param role_name: str
+        """
+        logging.debug('Reached get_ansible_role')
+
+        if not roles:
+            params = {'per_page': 'all'}
+            response = self.get(posixpath.join("ansible", "api", "ansible_roles"), params=params, headers=self.headers).json()
+
+            logging.debug(f"About to return {response.get("subtotal")} roles")
+            return response.get("results")
+
+        params = {'search': None}
+
+        if isinstance(roles, (str, int)):
+            roles = [roles]
+
+        query = []
+        for role in roles:
+            if isinstance(role, str):
+                query.append(f"name={role}")
+            elif isinstance(role, int):
+                query.append(f"id={role}")
+            else:
+                raise ForemanAPIError(f"Invalid role type: {type(role)}")
+
+        params["search"] = " or ".join(query)
+
+        logging.debug(f"Search param is {params.get('search')}")
+        response = self.get(posixpath.join("ansible", "api", "ansible_roles"), params=params, headers=self.headers).json()
+
+        logging.debug(f"About to return {response.get("subtotal")} roles")
+        return response.get("results")
+
+    def assign_ansible_roles(self, hostname, roles):
+        """
+        Assign an ansible roles and override value by given role_id and kwargs to specific hostname.
+        :param hostname: str
+        :param roles: list/str/int
+        """
+        logging.debug('Reached assign_ansible_roles')
+        logging.debug(f'Hostname: [{hostname}]')
+        logging.debug(f'Roles: [{roles}]')
+
+        role_ids = []
+        role_names = []
+
+        if isinstance(roles, (str, int)):
+            roles = [roles]
+
+        roles = self.get_ansible_role(roles)
+        for role in roles:
+            role_ids.append(role.get("id"))
+            role_names.append(role.get("name"))
+
+        payload = {
+            "ansible_role_ids": role_ids
+        }
+
+        # Assign ansible roles
+        logging.debug(f'About to set roles {role_names}')
+        self.post(posixpath.join("hosts", hostname, "assign_ansible_roles"), headers=self.headers, json=payload)
+
+    def assign_ansible_roles_and_override(self, hostname, roles):
+        """
+        Assign an ansible roles and override value by given role_id and kwargs to specific hostname.
+        :param hostname: str
+        :param roles: dict
+        """
+        logging.debug('Reached assign_ansible_roles_and_override')
+        logging.debug(f'Hostname: [{hostname}]')
+        logging.debug(f'Roles: [{roles}]')
+
+        role_ids = []
+        updated_dict = {}
+
+        if not isinstance(roles, dict):
+            raise ForemanAPIError(code=400, text="Input must be in dict")
+
+        temp_roles = []
+        for role, variable in roles.items():
+            temp_roles.append(role)
+
+        new_roles = self.get_ansible_role(temp_roles)
+        for new_role in new_roles:
+            role_ids.append(new_role.get("id"))
+            if not roles.get(new_role.get("id")):
+                continue
+
+            roles[new_role.get("name")] = roles.pop(new_role.get("id"))
+
+        payload = {
+            "ansible_role_ids": role_ids
+        }
+
+        for key, values in roles.items():
+            params = {"search": f"ansible_role={key}", "per_page": "all"}
+
+            variables = self.get(posixpath.join("ansible", "api", "ansible_variables"), params=params).json()["results"]
+            valid_params = {v["parameter"]: v["id"] for v in variables}
+
+            missing = [p for p in values.keys() if p not in valid_params]
+            if missing:
+                raise ForemanAPIError(code=400, text=f"Role '{key}' missing variables: {', '.join(missing)}")
+
+            for param_name, param_value in values.items():
+                variable_id = valid_params[param_name]
+                updated_dict[f"{variable_id}-{param_name}"] = param_value
+
+        # Assign ansible roles
+        logging.debug(f'About to set roles {roles}')
+        self.post(posixpath.join("hosts", hostname, "assign_ansible_roles"), headers=self.headers, json=payload)
+
+        for key, value in updated_dict.items():
+            payload = {
+                "ansible_variable_id": key,
+                "override_value": {
+                    "match": f"fqdn={hostname}",
+                    "value": value
+                }
+            }
+            logging.debug(f'About to override ansible variables {key} with value {value}')
+
+            self.post(posixpath.join("ansible", "api", "ansible_override_values"), headers=self.headers, json=payload)
+            sleep(1)
