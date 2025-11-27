@@ -3,6 +3,7 @@
 import re
 import json
 import unittest
+from unittest.mock import patch, MagicMock, call, PropertyMock
 from datetime import datetime, timedelta
 from collections import namedtuple
 from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError
@@ -14,7 +15,7 @@ class _Response(object):
 
     def __init__(self, data):
         self.content = data
-        self.text = json.dumps({"results": [{"id": 100, "name": "test_stand"}]}) 
+        self.text = json.dumps({"results": [{"id": 100, "name": "test_stand"}]})
         self.status_code = 200
 
     def json(self):
@@ -40,7 +41,7 @@ class _Session(object):
         if params is not None and len(params) > 0:
             r += '?' + '&'.join(map(lambda x: x [0]+'='+x [1], params.items()))
         return _Response(self.handler(r))
-    
+
     def delete(self, req, params = None, **other):
         r = req
         if params is not None and len(params) > 0:
@@ -60,7 +61,7 @@ class _ForemanAPI(ForemanAPI):
         location_id = 5
         hostgroup = 11
         deploy_on = 1
-        
+
         self.defs = class_defaults(exp_date, location_id, hostgroup, deploy_on)
         self.__apiversion = 1
         self.__foreman_version = None
@@ -282,3 +283,399 @@ class TestForemanAPI(unittest.TestCase):
 
     def test_set_parameter_value(self):
         self.api.set_parameter_value("test-parameter", "test-name", "test-value")
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_ansible_roles(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC" },
+            { "id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_host_ansible_roles("test-host-ansible-roles")
+        self.assertEqual(roles, [{"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC" }, { "id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_all(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+                {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role()
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            headers=self.api.headers,
+            params={'per_page': 'all'}
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_single_string(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role("roles-one")
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            params={'search': 'name=roles-one'},
+            headers=self.api.headers
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_single_int(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role(51)
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            params={'search': 'id=51'},
+            headers=self.api.headers
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_list_string(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+                {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role(["roles-one", "roles-two"])
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            params={'search': 'name=roles-one or name=roles-two'},
+            headers=self.api.headers
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_list_int(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+                {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role([51, 53])
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            params={'search': 'id=51 or id=53'},
+            headers=self.api.headers
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_ansible_role_list_int(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results":  [
+                {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+                {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+            ]
+        }
+
+        mock_get.return_value = mock_response
+
+        roles = self.api.get_ansible_role([51, "roles-two"])
+
+        mock_get.assert_called_once_with(
+            "ansible/api/ansible_roles",
+            params={'search': 'id=51 or name=roles-two'},
+            headers=self.api.headers
+        )
+        self.assertEqual(roles, [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ])
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_string(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [{"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"}]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", "roles-one")
+
+        mock_get_ansible_role.assert_called_once_with(["roles-one"])
+
+        payload = {
+            "ansible_role_ids": [51]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_int(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [{"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"}]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", 51)
+
+        mock_get_ansible_role.assert_called_once_with([51])
+
+        payload = {
+            "ansible_role_ids": [51]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_list_string(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", ["roles-one", "roles-two"])
+
+        mock_get_ansible_role.assert_called_once_with(["roles-one", "roles-two"])
+
+        payload = {
+            "ansible_role_ids": [51, 53]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_list_int(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", [51, 53])
+
+        mock_get_ansible_role.assert_called_once_with([51, 53])
+
+        payload = {
+            "ansible_role_ids": [51, 53]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_list_random(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", ["roles-one", 53])
+
+        mock_get_ansible_role.assert_called_once_with(["roles-one", 53])
+
+        payload = {
+            "ansible_role_ids": [51, 53]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    @patch.object(ForemanAPI, 'get')
+    def test_assign_ansible_roles_and_override(self, mock_get, mock_post, mock_get_ansible_role):
+        # Mock post (1 assign + 4 overrides)
+        mock_post.return_value = MagicMock()
+
+        # Mock self.get
+        get_variable_one = MagicMock()
+        get_variable_one.json.return_value = {
+            "results": [
+                {"parameter": "version", "id": 1},
+                {"parameter": "extras", "id": 2},
+                {"parameter": "another-extras", "id": 3},
+            ]
+        }
+
+        get_variable_two = MagicMock()
+        get_variable_two.json.return_value = {
+            "results": [
+                {"parameter": "version", "id": 4},
+                {"parameter": "extras",  "id": 5},
+                {"parameter": "another-extras", "id": 6},
+            ]
+        }
+
+        mock_get.side_effect = [get_variable_one, get_variable_two]
+
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+
+        payload = {
+            "roles-one": {"version": "1.2.3", "extras": "random"},
+            "roles-two": {"version": "1.2.3","another-extras": "random"}
+        }
+
+        self.api.assign_ansible_roles_and_override("test-host-name", payload)
+
+        mock_get_ansible_role.assert_called_once_with(['roles-one', 'roles-two'])
+
+        expected_get_calls = [
+            call(
+                "ansible/api/ansible_variables",
+                params={"search": "ansible_role=roles-one", "per_page": "all"}
+            ),
+            call(
+                "ansible/api/ansible_variables",
+                params={"search": "ansible_role=roles-two", "per_page": "all"}
+            )
+        ]
+        mock_get.assert_has_calls(expected_get_calls, any_order=False)
+        self.assertEqual(mock_get.call_count, 2)
+
+        # Verify post called 5 times (1 assign + 4 overrides)
+        self.assertEqual(mock_post.call_count, 5)
+
+        # Verify first post call (assign ansible roles)
+        first_post_call = mock_post.call_args_list[0]
+        self.assertEqual(first_post_call[0][0], "hosts/test-host-name/assign_ansible_roles")
+        self.assertEqual(first_post_call[1]['json'], {"ansible_role_ids": [51, 53]})
+
+        # Verify override calls
+        override_calls = mock_post.call_args_list[1:]
+        self.assertEqual(len(override_calls), 4)
+
+        self.assertIn("1-version", str(override_calls[0]))
+        self.assertIn("1.2.3", str(override_calls[0]))
+        self.assertIn("2-extras", str(override_calls[1]))
+        self.assertIn("random", str(override_calls[1]))
+        self.assertIn("4-version", str(override_calls[2]))
+        self.assertIn("1.2.3", str(override_calls[2]))
+        self.assertIn("6-another-extras", str(override_calls[3]))
+        self.assertIn("random", str(override_calls[3]))
+
+    def test_assign_ansible_roles_and_override_not_dict(self):
+        payload = ["roles-one"]
+
+        with self.assertRaises(ForemanAPIError) as e:
+            self.api.assign_ansible_roles_and_override("test-host-name", payload)
+
+        self.assertEqual(e.exception.code, 400)
+        self.assertIn("Input must be in dict", e.exception.text)
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'get')
+    def test_assign_ansible_roles_and_override_missing_variable(self, mock_get, mock_get_ansible_role):
+        # Mock self.get
+        get_variable_one = MagicMock()
+        get_variable_one.json.return_value = {
+            "results": [
+                {"parameter": "version", "id": 1},
+                {"parameter": "extras", "id": 2},
+                {"parameter": "another-extras", "id": 3},
+            ]
+        }
+
+        get_variable_two = MagicMock()
+        get_variable_two.json.return_value = {
+            "results": [
+                {"parameter": "version", "id": 4},
+                {"parameter": "extras",  "id": 5},
+            ]
+        }
+
+        mock_get.side_effect = [get_variable_one, get_variable_two]
+
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one", "created_at": "2025-01-27 10:15:38 UTC", "updated_at": "2025-01-27 10:15:38 UTC"},
+            {"id": 53, "name": "roles-two", "created_at": "2025-05-14 08:40:53 UTC", "updated_at": "2025-05-14 08:40:53 UTC"}
+        ]
+
+        payload = {
+            "roles-one": {"version": "1.2.3", "extras": "random"},
+            "roles-two": {"version": "1.2.3","another-extras": "random"}
+        }
+
+        with self.assertRaises(ForemanAPIError) as e:
+            self.api.assign_ansible_roles_and_override("test-host-name", payload)
+
+        mock_get_ansible_role.assert_called_once_with(['roles-one', 'roles-two'])
+
+        expected_get_calls = [
+            call(
+                "ansible/api/ansible_variables",
+                params={"search": "ansible_role=roles-one", "per_page": "all"}
+            ),
+            call(
+                "ansible/api/ansible_variables",
+                params={"search": "ansible_role=roles-two", "per_page": "all"}
+            )
+        ]
+        mock_get.assert_has_calls(expected_get_calls, any_order=False)
+        self.assertEqual(mock_get.call_count, 2)
+
+        self.assertEqual(e.exception.code, 400)
+        self.assertIn("missing variables", e.exception.text)
