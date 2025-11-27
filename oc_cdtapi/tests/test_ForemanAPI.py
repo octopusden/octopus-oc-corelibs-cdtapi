@@ -414,7 +414,7 @@ class TestForemanAPI(unittest.TestCase):
         ])
 
     @patch.object(ForemanAPI, 'get')
-    def test_get_ansible_role_list_int(self, mock_get):
+    def test_get_ansible_role_list_mixed(self, mock_get):
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "results":  [

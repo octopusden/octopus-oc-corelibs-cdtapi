@@ -1438,7 +1438,7 @@ class ForemanAPI(HttpAPI):
             params = {'per_page': 'all'}
             response = self.get(posixpath.join("ansible", "api", "ansible_roles"), params=params, headers=self.headers).json()
 
-            logging.debug(f"About to return {response.get("subtotal")} roles")
+            logging.debug(f"About to return {response.get('subtotal')} roles")
             return response.get("results")
 
         params = {'search': None}
@@ -1460,7 +1460,7 @@ class ForemanAPI(HttpAPI):
         logging.debug(f"Search param is {params.get('search')}")
         response = self.get(posixpath.join("ansible", "api", "ansible_roles"), params=params, headers=self.headers).json()
 
-        logging.debug(f"About to return {response.get("subtotal")} roles")
+        logging.debug(f"About to return {response.get('subtotal')} roles")
         return response.get("results")
 
     def assign_ansible_roles(self, hostname, roles):
