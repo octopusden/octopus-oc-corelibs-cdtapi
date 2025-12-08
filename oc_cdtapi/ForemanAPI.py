@@ -1203,6 +1203,25 @@ class ForemanAPI(HttpAPI):
             logging.error('Error parsing disk size for [%s]: %s' % (hostname, e))
             return None
 
+    def get_host_memory_mb(self, hostname):
+        """
+        :param hostname: str
+        :return: int
+        """
+        logging.debug('Reached get_host_memory_mb')
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        data = response.json()
+
+        try:
+            memory_mb = data.get("memory_mb")
+            if memory_mb is not None:
+                return int(memory_mb)
+            logging.error('Could not find memory_mb in vm_compute_attributes for [%s]' % hostname)
+            return None
+        except (ValueError, TypeError) as e:
+            logging.error('Error parsing memory_mb for [%s]: %s' % (hostname, e))
+            return None
+
     def get_all_users(self):
         """
         :return: list

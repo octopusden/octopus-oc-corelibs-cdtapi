@@ -252,6 +252,26 @@ class TestForemanAPI(unittest.TestCase):
         disk_size = self.api.get_host_disk_size("test2")
         self.assertEqual(disk_size, 100)
 
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_memory_mb(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "cpus": 1,
+            "memory_mb": 5120,
+            "guest_id": "other5xLinux64Guest",
+            "path": "test-path",
+            "datacenter": "test-dc",
+            "cluster": "test-cl",
+            "resource_pool": "test-rp",
+            "name": "test-vm",
+            "uuid": "test-vm-uuid"
+        }
+
+        mock_get.return_value = mock_response
+
+        memory_mb = self.api.get_host_memory_mb("test-host-ansible-roles")
+        self.assertEqual(memory_mb, 5120)
+
     def test_get_job_template_id(self):
         response = self.api.get_job_template_id("Run \"cdt-resize-partition\" role CDT")
         self.assertEqual(response, 215)
