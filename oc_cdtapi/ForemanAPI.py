@@ -1209,14 +1209,18 @@ class ForemanAPI(HttpAPI):
         :return: int
         """
         logging.debug('Reached get_host_memory_mb')
-        try:
-            response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-            data = response.json()
-        except ForemanAPIError as e:
-            raise ForemanAPIError(code=404, text="Hostname not found")
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        data = response.json()
 
-        memory_mb = data.get("memory_mb", 0)
-        return int(memory_mb)
+        try:
+            memory_mb = data.get("memory_mb")
+            if memory_mb is not None:
+                return int(memory_mb)
+            logging.error('Could not find memory_mb in vm_compute_attributes for [%s]' % hostname)
+            return None
+        except (ValueError, TypeError) as e:
+            logging.error('Error parsing memory_mb for [%s]: %s' % (hostname, e))
+            return None
 
     def get_all_users(self):
         """
