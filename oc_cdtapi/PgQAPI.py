@@ -69,6 +69,21 @@ class PgQAPI (object):
         logging.debug(message)
         return message
 
+    def compose_register_file(self, parms):
+        logging.debug('reached compose_register_file')
+        logging.debug('received parms: [%s]' % parms)
+        try:
+            location = parms.get("location")
+            citype = parms.get("citype")
+            depth = parms.get("depth")
+        except KeyError as e:
+            logging.error(f"params {e} not specified")
+            return None
+        message = ["register_file", [[*location], citype, depth], {}]
+        logging.debug('composed message')
+        logging.debug(message)
+        return message
+
     def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None):
         logging.debug('reached enqueue_message')
         if pg_connection:
