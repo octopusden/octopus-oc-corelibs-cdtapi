@@ -26,7 +26,7 @@ class PgQAPI (object):
         else:
             logging.debug('No connection provided, creating')
             self.conn = self.pg_connect(url, username, password)
-        self.message_types = ['dlartifacts', 'dlbuild', 'dlcontents', 'dlupload', 'ns']
+        self.message_types = ['dlartifacts', 'dlbuild', 'dlcontents', 'dlupload', 'ns', 'register_file']
 
     def create_queue(self, queue_code, queue_name):
         logging.debug('reached create_queue')
@@ -72,12 +72,12 @@ class PgQAPI (object):
     def compose_register_file(self, parms):
         logging.debug('reached compose_register_file')
         logging.debug('received parms: [%s]' % parms)
-        try:
-            location = parms.get("location")
-            citype = parms.get("citype")
-            depth = parms.get("depth")
-        except KeyError as e:
-            logging.error(f"params {e} not specified")
+
+        location = parms.get("location")
+        citype = parms.get("citype")
+        depth = parms.get("depth")
+        if not location or citype is None or depth is None:
+            logging.error('location, citype, and depth must all be specified')
             return None
         message = ["register_file", [[*location], citype, depth], {}]
         logging.debug('composed message')
