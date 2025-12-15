@@ -46,16 +46,10 @@ class VaultAPI:
 
         return self._client
 
-    def parse_secret_name(self, name):
-        if 'USER' in name:
-            split_name = name.split('_USER')[0]
-            return split_name, 'USER'
-
-        if 'PASSWORD' in name:
-            split_name = name.split('_PASSWORD')[0]
-            return split_name, 'PASSWORD'
-
-        return 'OTHER', name
+    def parse_secret_name(self, name: str) -> tuple[str, str]:
+        if "__" not in name:
+            raise ValueError(f"Invalid secret name format: {name}")
+        return name.rsplit(sep="__", maxsplit=1)
 
     def get_secret_from_path(self, name):
         client = self.client
