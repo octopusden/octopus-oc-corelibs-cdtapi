@@ -1,8 +1,13 @@
 import logging
 import os
+from typing import Any
 
 import hvac
 from hvac.exceptions import VaultError
+
+# module level cache
+_config_cache: dict[str, Any] = {}
+
 
 class VaultAPI:
     def __init__(self,
@@ -75,5 +80,17 @@ class VaultAPI:
             self.logger.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
 
-    def load_secret(self, name, default=None):
-        return self.get_secret_from_path(name) or os.getenv(name, default)
+    def load_secret(self, key: str, defaults: dict[str, Any]) -> Any:
+        def _get_value(key: str):
+            if (value := self.get_secret_from_path(key=key)) is not None:
+                return value
+            for src in (os.environ, defaults):
+                if (value := src.get(key)) is not None:
+                    return value
+            return None
+
+        is_test = _get_value("PYTHON_ENV") == "test"
+        key = f"{key}_TEST" if is_test else key
+        if key not in _config_cache:
+            _config_cache[key] = _get_value(key)
+        return _config_cache[key]
