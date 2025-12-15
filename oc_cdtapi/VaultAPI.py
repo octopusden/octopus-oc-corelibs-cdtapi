@@ -11,28 +11,21 @@ _config_cache: dict[str, Any] = {}
 
 class VaultAPI:
     def __init__(self,
-                 vault_enable=False,
                  vault_url=None,
                  vault_token=None,
                  vault_mount_point=None,
                  verify_ssl=True):
-        self.vault_enable = vault_enable or os.getenv("VAULT_ENABLE")
         self.vault_url = vault_url or os.getenv("VAULT_URL")
         self.vault_token = vault_token or os.getenv("VAULT_TOKEN")
         self.mount_point = vault_mount_point or os.getenv("VAULT_MOUNT_POINT")
-        self.use_staging_secrets = os.getenv("USE_STAGING_ENVIRONMENT", "false").lower() == "true" #Check whether we have env USE_STAGING_ENVIRONMENT true or not
         self.verify_ssl = verify_ssl
         self._client = None
 
         # Create a logger instance for this class
         self.logger = logging.getLogger(__name__)
-        
+
     @property
     def client(self):
-        if not self.vault_enable:
-            self.logger.warning("VAULT_ENABLE environment set to false, skip using vault")
-            return None
-
         if self._client is None:
             if not self.vault_url:
                 self.logger.warning("VAULT_URL environment variable or vault_url parameter is missing, skip using vault")
@@ -68,14 +61,10 @@ class VaultAPI:
         client = self.client
         if client is None:
             return None
-
         secret_path, credentials = self.parse_secret_name(name)
-        if self.use_staging_secrets:
-            secret_path = secret_path + "_TEST"
-
         try:
             response = client.secrets.kv.read_secret_version(path=secret_path, mount_point=self.mount_point)
-            return response['data']['data'].get(credentials)
+            return response["data"]["data"].get(credentials)
         except VaultError as e:
             self.logger.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
