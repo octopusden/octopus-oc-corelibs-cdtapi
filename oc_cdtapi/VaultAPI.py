@@ -78,16 +78,7 @@ class VaultAPI:
             return None
 
     def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
-        def _get_from_sources(key: str) -> Optional[Any]:
-            value = os.getenv(key)
-            if value is not None:
-                return value
-            if default is not None:
-                return default
-            return None
-
         is_test = os.getenv("PYTHON_ENV") == "test"
-
         if is_test:
             name = f"{name}_TEST"
 
@@ -95,4 +86,4 @@ class VaultAPI:
         if value is not None:
             return value
 
-        return _get_from_sources(name)
+        return os.getenv(name, default=default)
