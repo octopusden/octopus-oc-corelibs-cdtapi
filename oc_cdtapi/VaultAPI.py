@@ -77,14 +77,16 @@ class VaultAPI:
             self.logger.warning(f"Failed to authenticate with Vault - Vault is unreachable: {e}")
             return None
 
-    def load_secret(self, name: str, defaults: dict[str, Any] | None = None) -> Any | None:
+    def load_secret(self, name: str, default: Any | None = None) -> Any | None:
         def _get_from_sources(key: str) -> Any | None:
-            for src in (os.environ, defaults):
-                if src is not None and key in src:
-                    return src[key]
+            value = os.getenv(key)
+            if value is not None:
+                return value
+            if default is not None:
+                return default
             return None
 
-        is_test = _get_from_sources("PYTHON_ENV") == "test"
+        is_test = os.getenv("PYTHON_ENV") == "test"
 
         if is_test:
             name = f"{name}_TEST"

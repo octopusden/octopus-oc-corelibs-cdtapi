@@ -93,7 +93,7 @@ class TestVaultAPI(unittest.TestCase):
         }
         mock_client_class.return_value = mock_client
 
-        result = self.vault.load_secret("PSQL__DB_PASSWORD", defaults={"PSQL__DB_PASSWORD": "test_pass3"})
+        result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass1")
 
 
@@ -108,7 +108,7 @@ class TestVaultAPI(unittest.TestCase):
         mock_client_class.return_value = mock_client
         result = self.vault.load_secret(
             "PSQL__DB_PASSWORD",
-            defaults={"PSQL__DB_PASSWORD": "test_pass3"}
+            default="test_pass3"
         )
         self.assertEqual(result, "test_pass2")
 
@@ -117,13 +117,13 @@ class TestVaultAPI(unittest.TestCase):
         vault = VaultAPI()
         result = vault.load_secret(
             "PSQL__DB_PASSWORD",
-            defaults={"PSQL__DB_PASSWORD": "test_pass3"}
+            default="test_pass3"
         )
         self.assertEqual(result, "test_pass2")
 
     def test_load_secret_should_read_secret_from_defaults_when_hv_and_env_is_not_present(self):
         vault = VaultAPI()
-        result = vault.load_secret("PSQL__DB_PASSWORD", defaults={"PSQL__DB_PASSWORD": "test_pass3"})
+        result = vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass3")
 
     def test_load_secret_should_return_none_when_secret_is_not_found(self):
@@ -137,5 +137,5 @@ class TestVaultAPI(unittest.TestCase):
         mock_client.is_authenticated.side_effect = requests.exceptions.ConnectionError()
         mock_client.secrets.kv.read_secret_version.side_effect = requests.exceptions.ConnectionError()
         mock_client_class.return_value = mock_client
-        result = self.vault.load_secret("PSQL__DB_PASSWORD", defaults={"PSQL__DB_PASSWORD": "test_pass3"})
+        result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass3")  
