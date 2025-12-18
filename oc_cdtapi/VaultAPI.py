@@ -1,7 +1,7 @@
 import re
 import logging
 import os
-from typing import Any
+from typing import Any, List, Optional
 
 import hvac
 import requests
@@ -26,7 +26,7 @@ class VaultAPI:
         self.logger = logging.getLogger(__name__)
 
     @property
-    def client(self) -> hvac.Client | None:
+    def client(self) -> Optional[hvac.Client]:
         if self._client is None:
             if not self.vault_url:
                 self.logger.warning("VAULT_URL environment variable or vault_url parameter is missing, skip using vault")
@@ -51,13 +51,13 @@ class VaultAPI:
                 return None
         return self._client
 
-    def _parse_secret_name(self, name: str) -> list[str]:
+    def _parse_secret_name(self, name: str) -> List[str]:
         if not SECRET_PATTERN.match(name):
             raise ValueError("Secret name must match <PATH>__<KEY>")
 
         return name.split("__", 1)
 
-    def get_secret_from_path(self, name: str) -> Any | None:
+    def get_secret_from_path(self, name: str) -> Optional[Any]:
         client = self.client
         if client is None:
             return None
@@ -74,11 +74,11 @@ class VaultAPI:
             self.logger.warning(f"Failed getting data from vault for path {secret_path} and credentials {credentials}: {e}")
             return None
         except requests.exceptions.ConnectionError as e:
-            self.logger.warning(f"Failed to authenticate with Vault - Vault is unreachable: {e}")
+            self.logger.warning(f"Failed to retrieve secret from Vault - Vault is unreachable: {e}")
             return None
 
-    def load_secret(self, name: str, default: Any | None = None) -> Any | None:
-        def _get_from_sources(key: str) -> Any | None:
+    def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
+        def _get_from_sources(key: str) -> Optional[Any]:
             value = os.getenv(key)
             if value is not None:
                 return value
