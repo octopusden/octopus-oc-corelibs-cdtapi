@@ -85,7 +85,7 @@ class TestVaultAPI(unittest.TestCase):
     
     @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'})
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
-    def test_load_secret_should_read_secret_from_hv_first(self, mock_client_class):
+    def test_load_secret_should_read_secret_from_env_first(self, mock_client_class):
         mock_client = MagicMock()
         mock_client.is_authenticated.return_value = True
         mock_client.secrets.kv.read_secret_version.return_value = {
@@ -94,7 +94,7 @@ class TestVaultAPI(unittest.TestCase):
         mock_client_class.return_value = mock_client
 
         result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
-        self.assertEqual(result, "test_pass1")
+        self.assertEqual(result, "test_pass2")
 
 
     @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'})

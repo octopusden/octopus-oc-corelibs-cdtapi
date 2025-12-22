@@ -82,8 +82,9 @@ class VaultAPI:
         if is_test:
             name = f"{name}_TEST"
 
-        value = self.get_secret_from_path(name=name)
+        value = os.getenv(name)
         if value is not None:
             return value
 
-        return os.getenv(name, default=default)
+        value = self.get_secret_from_path(name=name)
+        return value or default
