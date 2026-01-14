@@ -83,6 +83,9 @@ class PgQAPI (object):
         checksum = parms.get('checksum')
         citype = parms.get('citype')
         mime = parms.get('mime')
+        if file_loc is None or checksum is None or citype is None:
+            logging.error('One of mandatory parms is missing: file_loc, checksum, citype')
+            return None
         msg = ["register_checksum", [file_loc, checksum, {"citype":citype}, mime] ]
         return msg
 
