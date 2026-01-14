@@ -26,7 +26,7 @@ class PgQAPI (object):
         else:
             logging.debug('No connection provided, creating')
             self.conn = self.pg_connect(url, username, password)
-        self.message_types = ['dlartifacts', 'dlbuild', 'dlcontents', 'dlupload', 'ns', 'register_file']
+        self.message_types = ['dlartifacts', 'dlbuild', 'dlcontents', 'dlupload', 'ns', 'register_file', 'register_checksum']
 
     def create_queue(self, queue_code, queue_name):
         logging.debug('reached create_queue')
@@ -68,6 +68,23 @@ class PgQAPI (object):
         logging.debug('composed message')
         logging.debug(message)
         return message
+
+    def compose_dlupload(self, parms):
+        logging.debug('reached compose_dlupload')
+        logging.debug('received parms: [%s]' % parms)
+        msg = ["upload_delivery", [parms], {}]
+        logging.debug('composed: [%s]' % msg)
+        return msg
+
+    def compose_register_checksum(self, parms):
+        logging.debug('reached compose_register_checksum')
+        logging.debug('received parms: [%s]' % parms)
+        file_loc = parms.get('file_loc')
+        checksum = parms.get('checksum')
+        citype = parms.get('citype')
+        mime = parms.get('mime')
+        msg = ["register_checksum", [file_loc, checksum, {"citype":citype}, mime] ]
+        return msg
 
     def compose_register_file(self, parms):
         logging.debug('reached compose_register_file')
