@@ -139,3 +139,16 @@ class TestVaultAPI(unittest.TestCase):
         mock_client_class.return_value = mock_client
         result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass3")  
+
+    @patch.dict('os.environ', {'PYTHON_ENV': 'test'})
+    @patch('oc_cdtapi.VaultAPI.hvac.Client')
+    def test_load_secret_must_properly_handle_falsy_secrets(self, mock_client_class):
+        mock_client = MagicMock()
+        mock_client.is_authenticated.return_value = True
+        mock_client.secrets.kv.read_secret_version.return_value = {
+            'data': {'data': {'SOME_BOOLEAN_TEST': False}}
+        }
+        mock_client_class.return_value = mock_client
+
+        result = self.vault.load_secret("PSQL__SOME_BOOLEAN")
+        self.assertEqual(result, False) 

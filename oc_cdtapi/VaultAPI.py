@@ -48,6 +48,7 @@ class VaultAPI:
                 return None
             if not is_authenticated:
                 self.logger.warning("Failed to authenticate with Vault - check credentials, skip using vault")
+                self._client = None
                 return None
         return self._client
 
@@ -87,4 +88,6 @@ class VaultAPI:
             return value
 
         value = self.get_secret_from_path(name=name)
-        return value or default
+        if value is None:
+            return default
+        return value
