@@ -80,13 +80,12 @@ class VaultAPI:
 
     def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
         value = os.getenv(name) or os.getenv(name.replace("__", "_"))
-        
-        is_test = os.getenv("PYTHON_ENV") == "test"
-        if is_test:
-            name = f"{name}_TEST"
         if value is not None:
             return value
 
+        is_test = os.getenv("PYTHON_ENV") == "test"
+        if is_test:
+            name = f"{name}_TEST"
         value = self.get_secret_from_path(name=name)
         if value is None:
             return default

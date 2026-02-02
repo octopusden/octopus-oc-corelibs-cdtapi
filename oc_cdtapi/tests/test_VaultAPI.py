@@ -70,7 +70,7 @@ class TestVaultAPI(unittest.TestCase):
         result = self.vault.load_secret("PSQL_PASSWORD")
         self.assertEqual(result, None)
     
-    @patch.dict('os.environ', {'PYTHON_ENV': 'test'})
+    @patch.dict('os.environ', {'PYTHON_ENV': 'test'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
     def test_load_secret_should_read_test_secrets(self, mock_client_class):
         mock_client = MagicMock()
@@ -83,7 +83,7 @@ class TestVaultAPI(unittest.TestCase):
         result = self.vault.load_secret("PSQL__DB_PASSWORD")
         self.assertEqual(result, "test_pass1")
     
-    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'})
+    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
     def test_load_secret_should_read_secret_from_env_first(self, mock_client_class):
         mock_client = MagicMock()
@@ -96,8 +96,17 @@ class TestVaultAPI(unittest.TestCase):
         result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass2")
 
+    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2', 'PYTHON_ENV': 'test'}, clear=True)
+    def test_load_secret_should_properly_read_test_secret_from_env(self):
+        result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
+        self.assertEqual(result, "test_pass2")
 
-    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'})
+    @patch.dict('os.environ', {'PSQL_DB_PASSWORD': 'test_pass2', 'PYTHON_ENV': 'test'}, clear=True)
+    def test_load_secret_should_properly_parse_secret_from_env(self):
+        result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
+        self.assertEqual(result, "test_pass2")
+
+    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
     def test_load_secret_should_read_secret_from_env_when_no_secret_in_hv(self, mock_client_class):
         mock_client = MagicMock()
@@ -112,7 +121,7 @@ class TestVaultAPI(unittest.TestCase):
         )
         self.assertEqual(result, "test_pass2")
 
-    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'})
+    @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'}, clear=True)
     def test_load_secret_should_read_secret_from_env_when_hv_is_not_present(self):
         vault = VaultAPI()
         result = vault.load_secret(
@@ -140,7 +149,7 @@ class TestVaultAPI(unittest.TestCase):
         result = self.vault.load_secret("PSQL__DB_PASSWORD", default="test_pass3")
         self.assertEqual(result, "test_pass3")  
 
-    @patch.dict('os.environ', {'PYTHON_ENV': 'test'})
+    @patch.dict('os.environ', {'PYTHON_ENV': 'test'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
     def test_load_secret_must_properly_handle_falsy_secrets(self, mock_client_class):
         mock_client = MagicMock()
