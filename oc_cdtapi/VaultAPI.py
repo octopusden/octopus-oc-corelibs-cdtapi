@@ -79,11 +79,11 @@ class VaultAPI:
             return None
 
     def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
+        value = os.getenv(name) or os.getenv(name.replace("__", "_"))
+        
         is_test = os.getenv("PYTHON_ENV") == "test"
         if is_test:
             name = f"{name}_TEST"
-
-        value = os.getenv(name)
         if value is not None:
             return value
 
