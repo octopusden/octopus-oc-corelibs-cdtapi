@@ -3,6 +3,7 @@ import doctest
 import os
 import shutil  # this required to copy data between file objects
 import posixpath
+import urllib3
 
 import requests
 
@@ -83,6 +84,14 @@ class HttpAPI(object):
 
         self.root = root
         self.web = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=urllib3.Retry(
+            raise_on_status=False,
+            total=2,
+            status_forcelist=[401],
+            allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "POST"]
+        ))
+        self.web.mount("https://", adapter)
+        self.web.mount("http://", adapter)
 
         if user and not anonymous:
             self.web.auth = (user, auth)
