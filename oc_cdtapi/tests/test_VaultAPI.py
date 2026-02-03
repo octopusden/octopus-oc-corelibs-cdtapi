@@ -70,18 +70,19 @@ class TestVaultAPI(unittest.TestCase):
         result = self.vault.load_secret("PSQL_PASSWORD")
         self.assertEqual(result, None)
     
-    @patch.dict('os.environ', {'PYTHON_ENV': 'test'}, clear=True)
-    @patch('oc_cdtapi.VaultAPI.hvac.Client')
-    def test_load_secret_should_read_test_secrets(self, mock_client_class):
-        mock_client = MagicMock()
-        mock_client.is_authenticated.return_value = True
-        mock_client.secrets.kv.read_secret_version.return_value = {
-            'data': {'data': {'DB_PASSWORD_TEST': 'test_pass1'}}
-        }
-        mock_client_class.return_value = mock_client
+    def test_load_secret_should_read_test_secrets(self):
+        for env_value in ("TEST", "test", "TeST"):
+            with self.subTest(PYTHON_ENV=env_value):
+                with patch.dict("os.environ", {"PYTHON_ENV": env_value}, clear=True), patch("oc_cdtapi.VaultAPI.hvac.Client") as mock_client_class:
+                    mock_client = MagicMock()
+                    mock_client.is_authenticated.return_value = True
+                    mock_client.secrets.kv.read_secret_version.return_value = {
+                        "data": {"data": {"DB_PASSWORD_TEST": "test_pass1"}}
+                    }
+                    mock_client_class.return_value = mock_client
 
-        result = self.vault.load_secret("PSQL__DB_PASSWORD")
-        self.assertEqual(result, "test_pass1")
+                    result = self.vault.load_secret("PSQL__DB_PASSWORD")
+                    self.assertEqual(result, "test_pass1")
     
     @patch.dict('os.environ', {'PSQL__DB_PASSWORD': 'test_pass2'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
