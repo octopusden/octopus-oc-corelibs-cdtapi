@@ -54,7 +54,7 @@ class VaultAPI:
 
     def _parse_secret_name(self, name: str) -> List[str]:
         if not SECRET_PATTERN.match(name):
-            raise ValueError("Secret name must match <PATH>__<KEY>")
+            raise ValueError(f"Secret name must match <PATH>__<KEY> for secret name {name}")
 
         return name.split("__", 1)
 
@@ -83,7 +83,7 @@ class VaultAPI:
         if value is not None:
             return value
 
-        is_test = os.getenv("PYTHON_ENV") == "test"
+        is_test = os.getenv("PYTHON_ENV", "").lower() == "test"
         if is_test:
             name = f"{name}_TEST"
         value = self.get_secret_from_path(name=name)
