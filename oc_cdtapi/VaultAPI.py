@@ -79,9 +79,18 @@ class VaultAPI:
             return None
 
     def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
-        value = os.getenv(name) or os.getenv(name.replace("__", "_"))
-        if value is not None:
+        def _parse_value(value: str):
+            if value.lower() == "true":
+                return True
+            if value.lower() == "false":
+                return False
             return value
+        value = os.getenv(name)
+        if value is None:
+            value = os.getenv(name.replace("__", "_"))
+
+        if value not in (None, ""):
+            return _parse_value(value)
 
         is_test = os.getenv("PYTHON_ENV", "").lower() == "test"
         if is_test:

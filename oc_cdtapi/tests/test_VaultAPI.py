@@ -152,7 +152,7 @@ class TestVaultAPI(unittest.TestCase):
 
     @patch.dict('os.environ', {'PYTHON_ENV': 'test'}, clear=True)
     @patch('oc_cdtapi.VaultAPI.hvac.Client')
-    def test_load_secret_must_properly_handle_falsy_secrets(self, mock_client_class):
+    def test_load_secret_must_properly_handle_falsy_secrets_from_hv(self, mock_client_class):
         mock_client = MagicMock()
         mock_client.is_authenticated.return_value = True
         mock_client.secrets.kv.read_secret_version.return_value = {
@@ -162,3 +162,21 @@ class TestVaultAPI(unittest.TestCase):
 
         result = self.vault.load_secret("PSQL__SOME_BOOLEAN")
         self.assertEqual(result, False) 
+
+    @patch.dict('os.environ', {'SOME_BOOLEAN': "False"}, clear=True)
+    def test_load_secret_must_properly_handle_falsy_secrets_from_env(self):
+        result = self.vault.load_secret("SOME_BOOLEAN")
+        self.assertEqual(result, False) 
+
+    def test_load_secret_must_read_boolean_secrets_from_env(self):
+        for env_value in ("true", "True"):
+            with self.subTest(SOME_BOOLEAN=env_value):
+                with patch.dict("os.environ", {"SOME_BOOLEAN": env_value}, clear=True):
+                    result = self.vault.load_secret("SOME_BOOLEAN")
+                    self.assertEqual(result, True)
+        for env_value in ("False", "False"):
+            with self.subTest(SOME_BOOLEAN=env_value):
+                with patch.dict("os.environ", {"SOME_BOOLEAN": env_value}, clear=True):
+                    result = self.vault.load_secret("SOME_BOOLEAN")
+                    self.assertEqual(result, False)
+    
