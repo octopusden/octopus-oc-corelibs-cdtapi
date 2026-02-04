@@ -79,7 +79,7 @@ class VaultAPI:
             return None
 
     def load_secret(self, name: str, default: Optional[Any] = None) -> Optional[Any]:
-        def _str_to_bool(value: str):
+        def _parse_value(value: str):
             if value.lower() == "true":
                 return True
             if value.lower() == "false":
@@ -90,7 +90,7 @@ class VaultAPI:
             value = os.getenv(name.replace("__", "_"))
 
         if value not in (None, ""):
-            return _str_to_bool(value)
+            return _parse_value(value)
 
         is_test = os.getenv("PYTHON_ENV", "").lower() == "test"
         if is_test:
