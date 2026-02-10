@@ -14,6 +14,7 @@ if sys.version_info.major == 2:
 elif sys.version_info.major == 3:
     strtype = str
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class HttpAPIError(Exception):
 
