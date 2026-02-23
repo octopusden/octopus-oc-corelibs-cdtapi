@@ -94,9 +94,6 @@ class Commit(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        print(f"obj, {obj}")
-        print(f'committer, {User.from_dict(obj["committer"])}')
-        print(f'committerTimestamp, {obj.get("committerTimestamp")}')
         """Create an instance of Commit from a dict"""
         if obj is None:
             return None
