@@ -96,9 +96,10 @@ class ForemanAPI(HttpAPI):
         logging.debug('owner = [%s]' % owner)
         params = {
             'search': f'owner={owner}',
-            'per_page': 'all',
-            'include': include
+            'per_page': 'all'
         }
+        if include is not None:
+            params['include'] = include
         response = self.get('hosts', params=params).json()
         results = response.get('results')
         return results
