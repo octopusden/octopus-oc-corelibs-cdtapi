@@ -22,3 +22,11 @@ class HostComputeAttributes:
             disk_size=disk_size,
             power_state=data.get("power_state", None),
         )
+
+    def to_json(self):
+        return {
+            "cpus": self.cpus,
+            "memory_mb": self.memory_mb,
+            "disk_size": self.disk_size,
+            "power_state": self.power_state,
+        }
