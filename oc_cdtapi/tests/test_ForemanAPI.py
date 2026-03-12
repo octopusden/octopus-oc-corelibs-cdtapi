@@ -272,6 +272,45 @@ class TestForemanAPI(unittest.TestCase):
         memory_mb = self.api.get_host_memory_mb("test-host-ansible-roles")
         self.assertEqual(memory_mb, 5120)
 
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "cpus": 1,
+            "memory_mb": 5120,
+            "guest_id": "other5xLinux64Guest",
+            "path": "test-path",
+            "datacenter": "test-dc",
+            "cluster": "test-cl",
+            "resource_pool": "test-rp",
+            "power_state": "poweredOff",
+            "name": "test-vm",
+            "uuid": "test-vm-uuid",
+            "volumes_attributes": {
+                "0": {
+                    "thin": True,
+                    "name": "Hard disk 1",
+                    "mode": "persistent",
+                    "id": "dsfb-4f0b-6d21-867f-baf4e4941c27",
+                    "eager_zero": False,
+                    "filename": "[datastore] 34543dfgdfg03/sandbox",
+                    "size": 104857600,
+                    "key": 2000,
+                    "unit_number": 0,
+                    "controller_key": 1000,
+                    "size_gb": 100
+                }
+            }
+        }
+
+        mock_get.return_value = mock_response
+
+        result = self.api.get_host_compute_attributes("test-host-ansible-roles")
+        self.assertEqual(result.cpus, 1)
+        self.assertEqual(result.power_state, "poweredOff")
+        self.assertEqual(result.memory_mb, 5120)
+        self.assertEqual(result.disk_size, 100)
+
     def test_get_job_template_id(self):
         response = self.api.get_job_template_id("Run \"cdt-resize-partition\" role CDT")
         self.assertEqual(response, 215)

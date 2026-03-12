@@ -4,11 +4,14 @@ import posixpath
 import re
 import time
 from time import sleep
+from typing import Optional
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from datetime import datetime, timedelta
 from packaging import version
+
+from oc_cdtapi.ForemanAPI import dto
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
@@ -1193,43 +1196,26 @@ class ForemanAPI(HttpAPI):
         """
         logging.debug('Reached get_host_compute_attributes')
         response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-        return response.json()
+        data = response.json()
+        return dto.HostComputeAttributes.from_json(data=data)
 
-    def get_host_disk_size(self, hostname):
+    def get_host_disk_size(self, hostname) -> Optional[int]:
         """
         :param hostname: str
         :return: int
         """
         logging.debug('Reached get_host_disk_size')
-        data = self.get_host_compute_attributes(hostname=hostname)
-        try:
-            volumes = data.get("volumes_attributes", {})
-            volume = volumes.get("0") or volumes.get(0)
-            if volume and "size_gb" in volume:
-                return int(volume["size_gb"])
-            logging.error('Could not find size_gb in vm_compute_attributes for [%s]' % hostname)
-            return None
-        except (KeyError, ValueError, TypeError) as e:
-            logging.error('Error parsing disk size for [%s]: %s' % (hostname, e))
-            return None
+        host_attributes = self.get_host_compute_attributes(hostname=hostname)
+        return host_attributes.disk_size
 
-    def get_host_memory_mb(self, hostname):
+    def get_host_memory_mb(self, hostname) -> Optional[int]:
         """
         :param hostname: str
         :return: int
         """
         logging.debug('Reached get_host_memory_mb')
-        data = self.get_host_compute_attributes(hostname=hostname)
-
-        try:
-            memory_mb = data.get("memory_mb")
-            if memory_mb is not None:
-                return int(memory_mb)
-            logging.error('Could not find memory_mb in vm_compute_attributes for [%s]' % hostname)
-            return None
-        except (ValueError, TypeError) as e:
-            logging.error('Error parsing memory_mb for [%s]: %s' % (hostname, e))
-            return None
+        host_attributes = self.get_host_compute_attributes(hostname=hostname)
+        return host_attributes.memory_mb
 
     def get_all_users(self):
         """
