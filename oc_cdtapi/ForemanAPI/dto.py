@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class HostComputeAttributes:
-    cpus: int
+    cpus: Optional[int]
     memory_mb: Optional[int]
     disk_size: Optional[int]
     power_state: Optional[str]

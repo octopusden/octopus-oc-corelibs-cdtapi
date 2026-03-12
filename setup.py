@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-__version = "3.35.7"
+__version = "3.35.8"
 
 install_requires = [
     "requests",
@@ -19,7 +19,7 @@ spec = {
     "description": "Custom Development python API libraries",
     "long_description": "Custom Development python API libraries",
     "long_description_content_type": "text/plain",
-    "packages": ["oc_cdtapi"],
+    "packages": ["oc_cdtapi", "oc_cdtapi.ForemanAPI"],
     "install_requires": install_requires,
     "tests_require": tests_require,
     "python_requires": ">=3.6",

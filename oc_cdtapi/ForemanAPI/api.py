@@ -7,11 +7,11 @@ from time import sleep
 from typing import Optional
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
+from oc_cdtapi.ForemanAPI import dto
 from collections import namedtuple
 from datetime import datetime, timedelta
 from packaging import version
 
-from oc_cdtapi.ForemanAPI import dto
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
@@ -1189,10 +1189,10 @@ class ForemanAPI(HttpAPI):
         logging.debug('Passing to get_host_uuid_v1')
         return self.get_host_uuid_v1(hostname)
     
-    def get_host_compute_attributes(self, hostname):
+    def get_host_compute_attributes(self, hostname) -> dto.HostComputeAttributes:
         """
         :param hostname: str
-        :return: dict
+        :return: HostComputeAttributes
         """
         logging.debug('Reached get_host_compute_attributes')
         response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
