@@ -1185,6 +1185,15 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached get_host_uuid_v2')
         logging.debug('Passing to get_host_uuid_v1')
         return self.get_host_uuid_v1(hostname)
+    
+    def get_host_compute_attributes(self, hostname):
+        """
+        :param hostname: str
+        :return: dict
+        """
+        logging.debug('Reached get_host_compute_attributes')
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        return response.json()
 
     def get_host_disk_size(self, hostname):
         """
@@ -1192,8 +1201,7 @@ class ForemanAPI(HttpAPI):
         :return: int
         """
         logging.debug('Reached get_host_disk_size')
-        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-        data = response.json()
+        data = self.get_host_compute_attributes(hostname=hostname)
         try:
             volumes = data.get("volumes_attributes", {})
             volume = volumes.get("0") or volumes.get(0)
@@ -1211,8 +1219,7 @@ class ForemanAPI(HttpAPI):
         :return: int
         """
         logging.debug('Reached get_host_memory_mb')
-        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-        data = response.json()
+        data = self.get_host_compute_attributes(hostname=hostname)
 
         try:
             memory_mb = data.get("memory_mb")
