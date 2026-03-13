@@ -4,11 +4,14 @@ import posixpath
 import re
 import time
 from time import sleep
+from typing import Optional
 
 from oc_cdtapi.API import HttpAPI, HttpAPIError
-from collections import namedtuple, defaultdict
+from oc_cdtapi.ForemanAPI import dto
+from collections import namedtuple
 from datetime import datetime, timedelta
 from packaging import version
+
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
@@ -78,7 +81,7 @@ class ForemanAPI(HttpAPI):
         else:
             return posixpath.join(self.root, req)
 
-    def get_host_by_owner(self, owner):
+    def get_host_by_owner(self, owner, include=None):
         """
         wrapper for api v1/v2
         """
@@ -89,15 +92,17 @@ class ForemanAPI(HttpAPI):
             return None
         elif self.apiversion == 2:
             logging.debug('Passing to get_host_by_owner_v2')
-            return self.get_host_by_owner_v2(owner)
+            return self.get_host_by_owner_v2(owner, include)
 
-    def get_host_by_owner_v2(self, owner):
+    def get_host_by_owner_v2(self, owner, include=None):
         logging.debug('Reached get_host_by_owner_v2')
         logging.debug('owner = [%s]' % owner)
         params = {
             'search': f'owner={owner}',
             'per_page': 'all'
         }
+        if include is not None:
+            params['include'] = include
         response = self.get('hosts', params=params).json()
         results = response.get('results')
         return results
@@ -1183,44 +1188,34 @@ class ForemanAPI(HttpAPI):
         logging.debug('Reached get_host_uuid_v2')
         logging.debug('Passing to get_host_uuid_v1')
         return self.get_host_uuid_v1(hostname)
+    
+    def get_host_compute_attributes(self, hostname) -> dto.HostComputeAttributes:
+        """
+        :param hostname: str
+        :return: HostComputeAttributes
+        """
+        logging.debug('Reached get_host_compute_attributes')
+        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
+        data = response.json()
+        return dto.HostComputeAttributes.from_json(data=data)
 
-    def get_host_disk_size(self, hostname):
+    def get_host_disk_size(self, hostname) -> Optional[int]:
         """
         :param hostname: str
         :return: int
         """
         logging.debug('Reached get_host_disk_size')
-        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-        data = response.json()
-        try:
-            volumes = data.get("volumes_attributes", {})
-            volume = volumes.get("0") or volumes.get(0)
-            if volume and "size_gb" in volume:
-                return int(volume["size_gb"])
-            logging.error('Could not find size_gb in vm_compute_attributes for [%s]' % hostname)
-            return None
-        except (KeyError, ValueError, TypeError) as e:
-            logging.error('Error parsing disk size for [%s]: %s' % (hostname, e))
-            return None
+        host_attributes = self.get_host_compute_attributes(hostname=hostname)
+        return host_attributes.disk_size
 
-    def get_host_memory_mb(self, hostname):
+    def get_host_memory_mb(self, hostname) -> Optional[int]:
         """
         :param hostname: str
         :return: int
         """
         logging.debug('Reached get_host_memory_mb')
-        response = self.get(posixpath.join("hosts", hostname, "vm_compute_attributes"))
-        data = response.json()
-
-        try:
-            memory_mb = data.get("memory_mb")
-            if memory_mb is not None:
-                return int(memory_mb)
-            logging.error('Could not find memory_mb in vm_compute_attributes for [%s]' % hostname)
-            return None
-        except (ValueError, TypeError) as e:
-            logging.error('Error parsing memory_mb for [%s]: %s' % (hostname, e))
-            return None
+        host_attributes = self.get_host_compute_attributes(hostname=hostname)
+        return host_attributes.memory_mb
 
     def get_all_users(self):
         """
