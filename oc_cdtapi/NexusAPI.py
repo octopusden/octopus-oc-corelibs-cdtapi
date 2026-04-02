@@ -183,10 +183,11 @@ def gav_from_path(path, dictionary=True):
     return generated_gav if dictionary else gav_to_str(generated_gav)
 
 class NexusAPI(HttpAPI):
-    _error = NexusAPIError
     _env_prefix = 'MVN'
     _env_upload_repo = '_UPLOAD_REPO'
     _env_download_repo = '_DOWNLOAD_REPO'
+
+    service_name = 'Nexus'
 
     codepage = 'utf-8'
     codepage_errors = 'replace'
@@ -335,7 +336,7 @@ class NexusAPI(HttpAPI):
         if rest_call and self.is_nexus:
             try:
                 r = self.get(posixpath.join('service', 'local', 'artifact', 'maven', 'redirect'), params, allow_redirects=False)
-            except NexusAPIError as e:
+            except HttpAPIError as e:
                 if e.code == 404: return False
                 raise (e)
             if r.status_code == 307: return True
@@ -344,7 +345,7 @@ class NexusAPI(HttpAPI):
         _req = self.__gav_get_url(gav, repo=params['r'])
         try:
             r = self.head(_req)
-        except NexusAPIError as e:
+        except HttpAPIError as e:
             if e.code == 404: return False
             raise (e)
         if r.status_code == 200: return True
@@ -473,7 +474,7 @@ class NexusAPI(HttpAPI):
             resp = self.get(_req, params=search_parameters, headers={'X-Result-Detail': 'info'})
             resp = resp.json()
             resp = resp.get('results')
-        except NexusAPIError as e:
+        except HttpAPIError as e:
             if e.code != 404:
                 logging.exception(e)
 
@@ -629,7 +630,7 @@ class NexusAPI(HttpAPI):
 
         try:
             http_resp = self.get(_req)
-        except NexusAPIError as e:
+        except HttpAPIError as e:
             # Artifactory returns 404 if file is not found
             # or information about it is not (yet?) available
             if e.code != 404: 

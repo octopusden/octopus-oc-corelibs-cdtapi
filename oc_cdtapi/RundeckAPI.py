@@ -18,6 +18,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import requests.status_codes
 
 class RundeckAPI(HttpAPI):
+    service_name = "Rundeck"
+
     def __init__(self, url, user=None, password=None, token=None):
         """
         Basic initialization.

@@ -8,18 +8,14 @@ import logging
 from oc_cdtapi.API import HttpAPI, HttpAPIError
 
 
-class OnecError(HttpAPIError):
-    """Custom exception for 1C API errors."""
-    pass
-
-
 class OnecAPI(HttpAPI):
     """
     API client for interacting with the 1C system.
     """
     
-    _error = OnecError
     _env_prefix = "ONEC"
+
+    service_name = "Onec"
     
     headers = {
         "Accept": "application/json;version=2",

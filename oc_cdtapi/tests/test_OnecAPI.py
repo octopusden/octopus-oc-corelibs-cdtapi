@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from oc_cdtapi.OnecAPI import OnecAPI, OnecError
+from oc_cdtapi.OnecAPI import OnecAPI
+from oc_cdtapi.API import HttpAPIError
 
 class TestOnecAPI(unittest.TestCase):
 
@@ -108,7 +109,7 @@ class TestOnecAPI(unittest.TestCase):
     @patch('oc_cdtapi.OnecAPI.OnecAPI.get')
     def test_get_clients_by_query_api_error(self, mock_get):
         """Test client query with API communication error"""
-        mock_get.side_effect = OnecError("Connection timeout")
+        mock_get.side_effect = HttpAPIError("Connection timeout")
 
         request_params = {'status': 'active'}
         result, error = self.api.get_clients_by_query(request_params)
@@ -175,7 +176,7 @@ class TestOnecAPI(unittest.TestCase):
     @patch('oc_cdtapi.OnecAPI.OnecAPI.get')
     def test_get_clients_licenses_api_error(self, mock_get):
         """Test license query with API error"""
-        mock_get.side_effect = OnecError("Network error")
+        mock_get.side_effect = HttpAPIError("Network error")
 
         clients = ['CLIENT001']
         result, error = self.api.get_clients_licenses(clients)
@@ -240,7 +241,7 @@ class TestOnecAPI(unittest.TestCase):
     @patch('oc_cdtapi.OnecAPI.OnecAPI.get')
     def test_get_licenses_codes_api_error(self, mock_get):
         """Test license codes query with API communication error"""
-        mock_get.side_effect = OnecError("Request timeout")
+        mock_get.side_effect = HttpAPIError("Request timeout")
 
         result, error = self.api.get_licenses_codes('CLIENT001')
 
