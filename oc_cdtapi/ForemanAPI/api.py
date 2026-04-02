@@ -15,8 +15,10 @@ from packaging import version
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
-        return self.text
-
+        if self.resp is not None:
+            return 'Code: ' + str(self.code) + ' Message: ' + self.resp.text
+        else:
+            return 'Code: ' + str(self.code) + ' Message: ' + self.text
 
 class ForemanAPI(HttpAPI):
     """
