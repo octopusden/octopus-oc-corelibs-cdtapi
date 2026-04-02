@@ -10,6 +10,8 @@ class DmsGetverAPI (API.HttpAPI):
     # prefix for credentials environment variables used by HttpAPI
     _env_prefix = 'DMS'
 
+    service_name = 'DmsGetver'
+
     def __init__(self, *args, **argv):
         logging.debug('Reached __init__')
         logging.debug('Calling base class constructor for availability of HttpAPI methods')

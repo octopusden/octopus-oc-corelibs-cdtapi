@@ -11,6 +11,8 @@ import posixpath
 class Dbsm2API (API.HttpAPI):
     _env_prefix = 'DBSM2'
 
+    service_name = "Dbsm2"
+
     def __init__(self, *args, **argv):
         logging.debug('Reached __init__')
         logging.debug('Calling base class constructor for availability of HttpAPI methods')
