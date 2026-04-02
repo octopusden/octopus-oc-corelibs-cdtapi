@@ -32,7 +32,7 @@ class DmsAPI(API.HttpAPI):
         token = os.getenv(self._env_prefix + self._env_token)
 
         if not self.crs_root:
-            raise ValueError(text="DMS API initialization failed. The components request URL [%s] is not set" % (
+            raise ValueError("DMS API initialization failed. The components request URL [%s] is not set" % (
                 self._env_prefix + self._env_crs))
 
         if token:
