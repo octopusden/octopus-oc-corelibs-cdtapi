@@ -359,7 +359,7 @@ class Build(object):
         build_path = posixpath.join("job", self.job_name, str(self.build_number), 'api', 'json')
         response = self.jenkins_client.get(build_path)
         if response.status_code == 404:
-            raise HttpAPIError("No build exist at %s" % build_path)
+            raise HttpAPIError(code=404, text=f"No build exist at {build_path}")
         parsed_response = json.loads(response.text or "{}")
         status_value = parsed_response["result"]
         if not status_value:
@@ -447,7 +447,7 @@ class QueueItem(object):
         item_path = posixpath.join("queue", "item", str(self.queue_id), "api", "json")
         response = self.jenkins_client.get(item_path)
         if response.status_code == 404:
-            raise HttpAPIError("No queue item exist at %s" % item_path)
+            raise HttpAPIError(code=404, text=f"No queue item exist at {item_path}")
         parsed_response = json.loads(response.text or "{}")
         if "executable" in parsed_response:
             self._build = Build(parsed_response["task"]["name"],
