@@ -16,8 +16,6 @@ class DevPIAPI(HttpAPI):
     """
     _env_prefix = "PYPI_PRODUCTION"
 
-    service_name = "DevPIAPI"
-
     def _split_pkg_string(self, name):
         """
         Split string for package name into components following PyPI standard

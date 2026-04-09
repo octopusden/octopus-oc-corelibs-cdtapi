@@ -6,6 +6,10 @@ import posixpath
 from . import API
 
 
+class DmsAPIError(API.HttpAPIError):
+    pass
+
+
 # we use HttpAPI as a base class - the idea of HttpAPI is to use it as a skelet for new API clients
 class DmsAPI(API.HttpAPI):
     """
@@ -20,8 +24,6 @@ class DmsAPI(API.HttpAPI):
     # TODO: refactor when it will be joined with base DMS API on the server-side
     _env_crs = '_CRS_URL'
 
-    service_name = "Dms"
-
     def __init__(self, *args, **argv):
         """
         Initialiazing the parent class then loading the DMS API's bearer token
@@ -32,7 +34,7 @@ class DmsAPI(API.HttpAPI):
         token = os.getenv(self._env_prefix + self._env_token)
 
         if not self.crs_root:
-            raise ValueError("DMS API initialization failed. The components request URL [%s] is not set" % (
+            raise DmsAPIError("DMS API initialization failed. The components request URL [%s] is not set" % (
                 self._env_prefix + self._env_crs))
 
         if token:

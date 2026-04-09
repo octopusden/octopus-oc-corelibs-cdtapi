@@ -18,17 +18,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class HttpAPIError(Exception):
 
-    def __init__(self, code=0, url='', resp=None, text='', service_name=''):
+    def __init__(self, code=0, url='', resp=None, text=''):
         self.code = code
         self.url = url
         self.resp = resp
         self.text = text
-        self.service_name = service_name
 
     def __str__(self):
-        if self.service_name:
-            return f"{self.service_name} error: {self.text} : Code {str(self.code)} {self.url}"
-        return f"{self.text} : Code {str(self.code)} {self.url}"
+        return self.text + ': Code ' + str(self.code) + ' ' + self.url
 
 
 class HttpAPI(object):
@@ -42,8 +39,6 @@ class HttpAPI(object):
     _env_url = '_URL'
     _env_user = '_USER'
     _env_auth = '_PASSWORD'
-
-    service_name = None
 
     def __init__(self, root=None, user=None, auth=None, readonly=False, anonymous=False):
         """
@@ -72,6 +67,7 @@ class HttpAPI(object):
         >>> obj_api.web.verify
         False
         """
+
         self.readonly = readonly
 
         if self._env_prefix is not None:
@@ -188,7 +184,7 @@ class HttpAPI(object):
         """
 
         if resp.status_code < self.raise_exception_low or resp.status_code > self.raise_exception_high:
-            raise self._error(resp.status_code, resp.url, resp, 'Error making request to server', self.service_name)
+            raise self._error(resp.status_code, resp.url, resp, 'Error making request to server')
 
         if write_to is not None:
 
