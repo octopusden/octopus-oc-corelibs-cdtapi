@@ -1476,8 +1476,8 @@ class ForemanAPI(HttpAPI):
             elif isinstance(role, int):
                 query.append(f"id={role}")
             else:
-                raise ForemanAPIError(f"Invalid role type: {type(role)}")
-
+                raise ForemanAPIError(code=400, text=f"Invalid role type: {type(role)}")
+            
         params["search"] = " or ".join(query)
 
         logging.debug(f"Search param is {params.get('search')}")
