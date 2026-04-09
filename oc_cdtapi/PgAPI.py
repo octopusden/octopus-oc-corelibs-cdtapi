@@ -8,9 +8,6 @@ from oc_cdtapi.API import HttpAPIError
 class PostgresAPI(API.HttpAPI):
     _env_prefix = 'PSQL'
     _env_token = 'TOKEN'
-
-    service_name = "Postgres"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

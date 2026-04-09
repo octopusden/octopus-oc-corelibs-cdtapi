@@ -1,5 +1,5 @@
 from unittest import TestCase
-from oc_cdtapi import NexusAPI, API
+from oc_cdtapi import NexusAPI
 from sys import version_info
 
 if version_info.major == 2:
@@ -185,7 +185,7 @@ class NexusAPITestSuite(TestCase):
         _ret.status_code = 404
         self.api.web.get = mock.MagicMock(return_value=_ret)
 
-        with self.assertRaises(API.HttpAPIError):
+        with self.assertRaises(NexusAPI.NexusAPIError):
             _res = self.api.cat("g:a:v:p:c")
 
         _expected_get = posixpath.join(_nexus_url, "content", "repositories", "public", NexusAPI.gav_to_path("g:a:v:p:c"))
@@ -276,7 +276,7 @@ class NexusAPITestSuite(TestCase):
         _ret.status_code = 418
         self.api.web.head = mock.MagicMock(return_value=_ret)
         _expected_head = posixpath.join(_nexus_url, "content", "repositories", "public", NexusAPI.gav_to_path("g:a:v:p:c"))
-        with self.assertRaises(API.HttpAPIError):
+        with self.assertRaises(NexusAPI.NexusAPIError):
             (self.api.exists("g:a:v:p:c"))
 
         self.api.web.head.assert_called_once_with(_expected_head, params=None, files=None, data=None, headers=None)
@@ -289,7 +289,7 @@ class NexusAPITestSuite(TestCase):
         _expected_get = posixpath.join(_nexus_url, 'service', 'local', 'artifact', 'maven', 'redirect')
         _expected_parms = {'g': 'g', 'a': 'a', "v": 'v', "p": 'p', 'c': 'c', 'r': "public"}
 
-        with self.assertRaises(API.HttpAPIError):
+        with self.assertRaises(NexusAPI.NexusAPIError):
             (self.api.exists("g:a:v:p:c", rest_call=True))
 
         self.api.web.head.assert_not_called()
@@ -466,7 +466,7 @@ class NexusAPITestSuite(TestCase):
         _ret.status_code = 403
         self.api.web.delete = mock.MagicMock(return_value=_ret)
 
-        with self.assertRaises(API.HttpAPIError):
+        with self.assertRaises(NexusAPI.NexusAPIError):
             _rsp = self.api.remove(gav=_gav, repo="idXupload")
 
         _del_expected = posixpath.join(_nexus_url, "content", "repositories", "idXupload", NexusAPI.gav_to_path(_gav))

@@ -1,6 +1,5 @@
 import unittest
-from oc_cdtapi.JenkinsAPI import Build, QueueItem, BuildStatus, BuildStatusException, Jenkins
-from oc_cdtapi.API import HttpAPIError
+from oc_cdtapi.JenkinsAPI import Build, QueueItem, BuildStatus, BuildStatusException, JenkinsError, Jenkins
 from requests import Response
 from collections import namedtuple, OrderedDict
 import re, posixpath;
@@ -198,7 +197,7 @@ class TestJenkinsClient( Jenkins ):
 
             if str_job_action == "config.xml" :
                 if not str_job_name in self.dict_jobs_exist:
-                    jerr = HttpAPIError( str_job_name + " not found" );
+                    jerr = JenkinsError( str_job_name + " not found" );
                     jerr.code = 404;
                     raise jerr;
 
@@ -233,7 +232,7 @@ class QueueItemTestSuite(unittest.TestCase):
 
     def test_invalid_queue_id(self):
         item=QueueItem(1, TestClient([MockResponse(404, {}, "{}")]))
-        with self.assertRaises(HttpAPIError):
+        with self.assertRaises(JenkinsError):
             item.is_running()
 
     def test_build_still_queued(self):
@@ -331,7 +330,7 @@ class BuildTestSuite(unittest.TestCase):
 
     def test_invalid_build_params(self):
         build=Build("job", 42, TestClient([MockResponse(404, {}, "{}")]))
-        with self.assertRaises(HttpAPIError):
+        with self.assertRaises(JenkinsError):
             build.get_status()
 
 def xml_norm( str_xml ):
