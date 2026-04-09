@@ -15,8 +15,17 @@ from packaging import version
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
-        return self.text
-
+        message = self.text
+        if self.resp is not None and self.resp.text:
+            # Try getting error created by foreman (it should be in json error -> message)
+            try:
+                err_json = json.loads(self.resp.text)
+                message = err_json["error"]["message"]
+            
+            # If its not JSON, meaning its from the API itself and we only need to take the reason
+            except ValueError:
+                message = self.resp.reason
+        return f"Code: {self.code} Message: {message}"
 
 class ForemanAPI(HttpAPI):
     """
@@ -1467,7 +1476,7 @@ class ForemanAPI(HttpAPI):
             elif isinstance(role, int):
                 query.append(f"id={role}")
             else:
-                raise ForemanAPIError(f"Invalid role type: {type(role)}")
+                raise ForemanAPIError(code=400, text=f"Invalid role type: {type(role)}")
 
         params["search"] = " or ".join(query)
 
