@@ -1,5 +1,5 @@
 from unittest import TestCase
-from oc_cdtapi import NexusAPI
+from oc_cdtapi import NexusAPI, API
 from sys import version_info
 
 if version_info.major == 2:
@@ -188,7 +188,7 @@ class ArtifactoryAPITestSuite(TestCase):
         _ret.status_code = 404
         self.api.web.get = mock.MagicMock(return_value=_ret)
 
-        with self.assertRaises(NexusAPI.NexusAPIError):
+        with self.assertRaises(API.HttpAPIError):
             _res = self.api.cat("g:a:v:p:c")
 
         _expected_get = posixpath.join(_af_url, "maven-virtual", NexusAPI.gav_to_path("g:a:v:p:c"))
@@ -279,7 +279,7 @@ class ArtifactoryAPITestSuite(TestCase):
         _ret.status_code = 418
         self.api.web.head = mock.MagicMock(return_value=_ret)
         _expected_head = posixpath.join(_af_url, "maven-virtual", NexusAPI.gav_to_path("g:a:v:p:c"))
-        with self.assertRaises(NexusAPI.NexusAPIError):
+        with self.assertRaises(API.HttpAPIError):
             (self.api.exists("g:a:v:p:c"))
 
         self.api.web.head.assert_called_once_with(_expected_head, params=None, files=None, data=None, headers=None)
@@ -292,7 +292,7 @@ class ArtifactoryAPITestSuite(TestCase):
         self.api.web.head = mock.MagicMock(return_value=_ret)
         _expected_head = posixpath.join(_af_url, "maven-virtual", NexusAPI.gav_to_path("g:a:v:p:c"))
 
-        with self.assertRaises(NexusAPI.NexusAPIError):
+        with self.assertRaises(API.HttpAPIError):
             (self.api.exists("g:a:v:p:c", rest_call=True))
 
         self.api.web.get.assert_not_called()
@@ -440,7 +440,7 @@ class ArtifactoryAPITestSuite(TestCase):
         _ret.status_code = 403
         self.api.web.delete = mock.MagicMock(return_value=_ret)
 
-        with self.assertRaises(NexusAPI.NexusAPIError):
+        with self.assertRaises(API.HttpAPIError):
             _rsp = self.api.remove(gav=_gav, repo="idXupload")
 
         _del_expected = posixpath.join(_af_url, "idXupload", NexusAPI.gav_to_path(_gav))

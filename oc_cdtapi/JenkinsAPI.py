@@ -10,12 +10,6 @@ import xml.etree.ElementTree as ET
 import posixpath
 import sys
 
-
-class JenkinsError(HttpAPIError):
-    def __str__(self):
-        return 'Error communicating with Jenkins: ' + self.text + ': Code ' + str(self.code) + ' ' + self.url
-
-
 class Jenkins(HttpAPI):
     """
     Simple and easy-to-use Jenkins interface
@@ -39,8 +33,9 @@ class Jenkins(HttpAPI):
 
     """
 
-    _error = JenkinsError
     _env_prefix = 'JENKINS'
+
+    service_name = 'Jenkins'
 
     def re(self, req):
         if req and req.startswith('!'):
@@ -73,7 +68,7 @@ class Jenkins(HttpAPI):
 
         try:
             self.get_node(node)
-        except JenkinsError as e:
+        except HttpAPIError as e:
             if e.code == 404:
                 request = posixpath.join('computer', 'doCreateItem')
             params = {'name': node}
@@ -208,7 +203,7 @@ class Jenkins(HttpAPI):
         headers = {'content-type': 'application/xml'}
         try:
             self.get_job(job)
-        except JenkinsError as e:
+        except HttpAPIError as e:
             if e.code == 404:
                 request = 'createItem'
             params = {'name': job}
@@ -364,7 +359,7 @@ class Build(object):
         build_path = posixpath.join("job", self.job_name, str(self.build_number), 'api', 'json')
         response = self.jenkins_client.get(build_path)
         if response.status_code == 404:
-            raise JenkinsError("No build exist at %s" % build_path)
+            raise HttpAPIError(code=404, text=f"No build exist at {build_path}")
         parsed_response = json.loads(response.text or "{}")
         status_value = parsed_response["result"]
         if not status_value:
@@ -452,7 +447,7 @@ class QueueItem(object):
         item_path = posixpath.join("queue", "item", str(self.queue_id), "api", "json")
         response = self.jenkins_client.get(item_path)
         if response.status_code == 404:
-            raise JenkinsError("No queue item exist at %s" % item_path)
+            raise HttpAPIError(code=404, text=f"No queue item exist at {item_path}")
         parsed_response = json.loads(response.text or "{}")
         if "executable" in parsed_response:
             self._build = Build(parsed_response["task"]["name"],
