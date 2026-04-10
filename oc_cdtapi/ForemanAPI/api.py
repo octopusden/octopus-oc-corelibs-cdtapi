@@ -26,7 +26,6 @@ class ForemanAPIError(HttpAPIError):
             except ValueError:
                 message = self.resp.reason
         return f"Code: {self.code} Message: {message}"
- 
 
 class ForemanAPI(HttpAPI):
     """
@@ -35,8 +34,6 @@ class ForemanAPI(HttpAPI):
 
     _error = ForemanAPIError
     _env_prefix = "FOREMAN"
-
-    service_name = "Foreman"
 
     headers = {
         "Accept": "application/json;version=2",
