@@ -437,29 +437,6 @@ class PostgresAPI(API.HttpAPI):
         res = self.get(req)
 
         return res.json()
-    
-    def get_client_cutie_dump_list_by_code(self, code):
-        """
-        Get a client cutie dumps by code.
-
-        This method sends a GET request to get a client cutie dumps list by code.
-
-        Args:
-            code : Client code.
-
-        Returns:
-            requests.Response: The response object from the API call.
-
-        Example:
-            >>> code = 2
-            >>> result = self.get_client_cutie_dump_list_by_code(code)
-            >>> print(result)
-            ['cutie_dump:prod:version_1:zip', 'cutie_dump:prod:version_2:zip', ...]
-        """
-        req = f"rest/api/1/clients/{code}/cutie_dumps"
-        res = self.get(req)
-
-        return res.json()
 
     def post_new_component(self, payload):
         """
