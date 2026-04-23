@@ -379,6 +379,26 @@ class PostgresAPI(API.HttpAPI):
                 raise HttpAPIError(e)
 
         return res.json()
+    
+    def get_clients_list(self):
+        """
+        Get a clients list.
+
+        This method sends a GET request to get a client list including the ftp upload option by code.
+
+        Returns:
+            requests.Response: The response object from the API call.
+
+        Example:
+            >>> code = 2
+            >>> result = self.get_clients_list(code)
+            >>> print(result.status_code)
+            200
+        """
+        req = f"rest/api/1/clients"
+        res = self.get(req)
+
+        return res.json()
 
     def get_client_by_code(self, code):
         """
@@ -399,6 +419,29 @@ class PostgresAPI(API.HttpAPI):
             200
         """
         req = f"rest/api/1/clients/{code}"
+        res = self.get(req)
+
+        return res.json()
+    
+    def get_client_cutie_dump_list_by_code(self, code):
+        """
+        Get a client cutie dumps by code.
+
+        This method sends a GET request to get a client cutie dumps list by code.
+
+        Args:
+            code : Client code.
+
+        Returns:
+            requests.Response: The response object from the API call.
+
+        Example:
+            >>> code = 2
+            >>> result = self.get_client_cutie_dump_list_by_code(code)
+            >>> print(result.status_code)
+            200
+        """
+        req = f"rest/api/1/clients/{code}/cutie_dumps"
         res = self.get(req)
 
         return res.json()
