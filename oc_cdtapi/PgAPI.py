@@ -391,11 +391,26 @@ class PostgresAPI(API.HttpAPI):
 
         Example:
             >>> code = 2
-            >>> result = self.get_clients_list(code)
-            >>> print(result.status_code)
-            200
+            >>> result = self.get_clients_list()
+            >>> print(result)
+            {
+                "can_receive": true,
+                "code": "_TEST_1",
+                "country": "TEST_COUNTRY",
+                "is_active": false,
+                "language": "en",
+                "should_encrypt": true
+            },
+            {
+                "can_receive": true,
+                "code": "_TEST_2",
+                "country": "TEST_COUNTRY",
+                "is_active": false,
+                "language": "en",
+                "should_encrypt": true
+            },
         """
-        req = f"rest/api/1/clients"
+        req = "rest/api/1/clients"
         res = self.get(req)
 
         return res.json()
@@ -438,8 +453,8 @@ class PostgresAPI(API.HttpAPI):
         Example:
             >>> code = 2
             >>> result = self.get_client_cutie_dump_list_by_code(code)
-            >>> print(result.status_code)
-            200
+            >>> print(result)
+            ['cutie_dump:prod:version_1:zip', 'cutie_dump:prod:version_2:zip', ...]
         """
         req = f"rest/api/1/clients/{code}/cutie_dumps"
         res = self.get(req)
