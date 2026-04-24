@@ -379,6 +379,41 @@ class PostgresAPI(API.HttpAPI):
                 raise HttpAPIError(e)
 
         return res.json()
+    
+    def get_clients_list(self):
+        """
+        Get a clients list.
+
+        This method sends a GET request to get a client list including the ftp upload option by code.
+
+        Returns:
+            requests.Response: The response object from the API call.
+
+        Example:
+            >>> code = 2
+            >>> result = self.get_clients_list()
+            >>> print(result)
+            {
+                "can_receive": true,
+                "code": "_TEST_1",
+                "country": "TEST_COUNTRY",
+                "is_active": false,
+                "language": "en",
+                "should_encrypt": true
+            },
+            {
+                "can_receive": true,
+                "code": "_TEST_2",
+                "country": "TEST_COUNTRY",
+                "is_active": false,
+                "language": "en",
+                "should_encrypt": true
+            },
+        """
+        req = "rest/api/1/clients"
+        res = self.get(req)
+
+        return res.json()
 
     def get_client_by_code(self, code):
         """
