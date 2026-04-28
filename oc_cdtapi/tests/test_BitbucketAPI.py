@@ -3,11 +3,8 @@ import os
 import re
 import unittest
 
-import sys
-if sys.version_info >= (3, 3):
-    from unittest.mock import patch
-else:
-    from mock import patch
+from unittest.mock import patch
+
 
 from ..BitbucketAPI import BitbucketAPI
 
@@ -169,7 +166,7 @@ class _BitbucketAPI(BitbucketAPI):
             })
         
         # Default fallback
-        return json.dumps([])
+        raise AssertionError("Unexpected mocked request: {} {}".format(method, url))
 
 
 class TestBitbucketAPI(unittest.TestCase):

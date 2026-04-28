@@ -18,6 +18,9 @@ class BitbucketAPI(API.HttpAPI):
     _env_prefix = 'BITBUCKET'
     _error = BitbucketAPIError
     
+    # Default timeout for all HTTP requests (in seconds)
+    DEFAULT_TIMEOUT = 30
+    
     def __init__(self, *args, **argv):
         """
         Initialize the parent class with username/password authentication
@@ -26,6 +29,8 @@ class BitbucketAPI(API.HttpAPI):
         """
         super().__init__(*args, **argv)
         
+        # No need for bearer token headers - basic auth is handled by parent class
+        # But we can add content-type header for JSON requests
         self.headers = {"Content-Type": "application/json"}
     
     def __req(self, req):
@@ -53,6 +58,7 @@ class BitbucketAPI(API.HttpAPI):
         if not req:
             return self.root
         
+        # Form URL: {root}/rest/api/1.0/{req}
         return posixpath.join(self.root, "rest", "api", "1.0", self.__req(req))
     
     def get_repo(self, project, repo_slug):
@@ -68,7 +74,7 @@ class BitbucketAPI(API.HttpAPI):
         
         req = ['projects', project, 'repos', repo_slug]
         
-        response = self.get(req, headers=self.headers)
+        response = self.get(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         repo_data = response.json()
         
         logging.debug('Retrieved repository: %s', repo_data.get('name', 'unknown'))
@@ -100,7 +106,7 @@ class BitbucketAPI(API.HttpAPI):
         if description:
             data['description'] = description
         
-        response = self.post(req, json=data, headers=self.headers)
+        response = self.post(req, json=data, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         repo_data = response.json()
         
         logging.debug('Created repository with slug: %s', repo_data.get('slug', 'unknown'))
@@ -120,9 +126,10 @@ class BitbucketAPI(API.HttpAPI):
         
         req = ['projects', project, 'repos', repo_slug]
         
+        # Archive by updating the archived flag
         data = {'archived': True}
         
-        response = self.put(req, json=data, headers=self.headers)
+        response = self.put(req, json=data, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         repo_data = response.json()
         
         logging.debug('Archived repository: %s', repo_data.get('name', 'unknown'))
@@ -140,7 +147,7 @@ class BitbucketAPI(API.HttpAPI):
         
         req = ['projects', project, 'repos']
         
-        response = self.get(req, headers=self.headers)
+        response = self.get(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         repos_data = response.json()
         
         repos = repos_data.get('values', [])
@@ -162,7 +169,7 @@ class BitbucketAPI(API.HttpAPI):
         
         req = ['projects', project, 'repos', repo_slug]
         
-        response = self.delete(req, headers=self.headers)
+        response = self.delete(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         
         logging.debug('Deleted repository: %s', repo_slug)
         
@@ -181,7 +188,7 @@ class BitbucketAPI(API.HttpAPI):
         
         req = ['projects', project, 'repos', repo_slug, 'branches']
         
-        response = self.get(req, headers=self.headers)
+        response = self.get(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
         branches_data = response.json()
         
         branches = branches_data.get('values', [])
@@ -197,4 +204,4 @@ class BitbucketAPI(API.HttpAPI):
         """
         logging.debug('Reached %s.ping_bitbucket', self.__class__.__name__)
         
-        return self.get([], headers=self.headers).content
+        return self.get([], headers=self.headers, timeout=self.DEFAULT_TIMEOUT).content
