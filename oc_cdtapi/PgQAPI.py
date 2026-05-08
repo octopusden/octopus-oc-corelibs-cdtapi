@@ -46,6 +46,13 @@ class PgQAPI (object):
         else:
             logging.error('failed to create queue')
 
+    def compose_any_message(self, method, *args, **kvargs):
+        logging.debug('reached compose_any_message')
+        msg = [method, [*args], {**kvargs}]
+        logging.debug('composed message')
+        logging.debug(msg)
+        return msg
+
     def compose_message(self, message_type, parms):
         logging.debug('reached compose_message')
         logging.debug('trying to compose message of type [%s]' % message_type)
