@@ -145,7 +145,7 @@ class BitbucketAPI(API.HttpAPI):
         start = 0
 
         while True:
-            response = self.get(req, params={'start': start}, headers=self.headers)
+            response = self.get(req, params={'start': start}, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
             page = response.json()
             repos.extend(page.get('values', []))
             if page.get('isLastPage', True):
@@ -183,19 +183,21 @@ class BitbucketAPI(API.HttpAPI):
         :param str repo_slug: repository slug
         :return list: branches
         """
-        logging.debug('Reached %s.get_branches', self.__class__.__name__)
-        logging.debug('project: {0}'.format(project))
-        logging.debug('repo_slug: {0}'.format(repo_slug))
-        
-        req = ['projects', project, 'repos', repo_slug, 'branches']
-        
-        response = self.get(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
-        branches_data = response.json()
-        
-        branches = branches_data.get('values', [])
-        
+        branches = []
+        start = 0
+
+        while True:
+            response = self.get(req, params={'start': start}, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
+            page = response.json()
+            branches.extend(page.get('values', []))
+            if page.get('isLastPage', True):
+                break
+            start = page.get('nextPageStart')
+            if start is None:
+                break
+
         logging.debug('About to return an array of %d elements', len(branches))
-        
+
         return branches
     
     def ping_bitbucket(self):
