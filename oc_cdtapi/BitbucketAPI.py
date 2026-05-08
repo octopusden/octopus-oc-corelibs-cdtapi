@@ -137,23 +137,24 @@ class BitbucketAPI(API.HttpAPI):
         return repo_data
     
     def get_repos(self, project):
-        """
-        Get list of repositories for a project
-        :param str project: project key
-        :return list: repositories
-        """
         logging.debug('Reached %s.get_repos', self.__class__.__name__)
-        logging.debug('project: {0}'.format(project))
-        
+        logging.debug('project: %s', project)
+
         req = ['projects', project, 'repos']
-        
-        response = self.get(req, headers=self.headers, timeout=self.DEFAULT_TIMEOUT)
-        repos_data = response.json()
-        
-        repos = repos_data.get('values', [])
-        
+        repos = []
+        start = 0
+
+        while True:
+            response = self.get(req, params={'start': start}, headers=self.headers)
+            page = response.json()
+            repos.extend(page.get('values', []))
+            if page.get('isLastPage', True):
+                break
+            start = page.get('nextPageStart')
+            if start is None:
+                break
+
         logging.debug('About to return an array of %d elements', len(repos))
-        
         return repos
     
     def delete_repo(self, project, repo_slug):
