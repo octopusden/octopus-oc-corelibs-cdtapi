@@ -470,3 +470,59 @@ class PostgresAPI(API.HttpAPI):
         logging.debug(f'Using post_manage_citype to register new component')
 
         return res
+
+    def get_client_distributions(self, code, citype):
+        """
+        Retrieve distribution information for a client.
+
+        Sends a GET request to the API to obtain distribution data
+        associated with a specific client and CI type.
+
+        Args:
+            code (str): Unique client identifier.
+            citype (str): CI type used to filter distributions.
+
+        Returns:
+            dict: Parsed JSON response containing client distribution data.
+
+        Raises:
+            requests.HTTPError: If the API request fails.
+
+        Example:
+            >>> code = 2
+            >>> citype = "datamart"
+            >>> result = self.get_client_distributions(code, citype)
+            >>> print(result)
+            [...]
+        """
+        req = f"rest/api/1/clients/{code}/distributions?citype={citype}"
+        res = self.get(req)
+
+        return res.json()
+
+    def get_client_cutie_dumps(self, code):
+        """
+        Retrieve CUTIE dump information for a client.
+
+        Sends a GET request to the API to obtain CUTIE dump data
+        associated with a specific client.
+
+        Args:
+            code (str): Unique client identifier.
+
+        Returns:
+            dict: Parsed JSON response containing CUTIE dump data.
+
+        Raises:
+            requests.HTTPError: If the API request fails.
+
+        Example:
+            >>> code = 2
+            >>> result = self.get_client_cutie_dumps(code)
+            >>> print(result)
+           [...]
+        """
+        req = f"rest/api/1/clients/{code}/cutie_dumps"
+        res = self.get(req)
+
+        return res.json()
