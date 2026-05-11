@@ -183,6 +183,7 @@ class BitbucketAPI(API.HttpAPI):
         :param str repo_slug: repository slug
         :return list: branches
         """
+        req = ['projects', project, 'repos', repo_slug, 'branches']
         branches = []
         start = 0
 
