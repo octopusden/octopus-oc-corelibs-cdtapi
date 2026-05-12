@@ -1,5 +1,5 @@
 import logging
-import os
+from urllib.parse import quote
 
 from oc_cdtapi import API
 from oc_cdtapi.API import HttpAPIError
@@ -495,7 +495,7 @@ class PostgresAPI(API.HttpAPI):
             >>> print(result)
             [...]
         """
-        req = f"rest/api/1/clients/{code}/distributions?citype={citype}"
-        res = self.get(req)
+        req = f"rest/api/1/clients/{quote(code, safe='')}/distributions"
+        res = self.get(req, params={'citype': citype})
 
         return res.json()
