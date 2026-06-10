@@ -465,6 +465,28 @@ class PostgresAPI(API.HttpAPI):
         logging.debug("get_placement name=%s", name)
         return res.json().get("data", {}).get("items", [])
 
+    def get_placement_by_id(self, placement_id: int) -> dict:
+        """
+        Get a single placement by its ID — always uses v2.
+
+        Args:
+            placement_id (int): The placement's primary key.
+
+        Returns:
+            dict: The placement dict, including nested ``provider``.
+
+        Raises:
+            requests.HTTPError: If the server returns 404 or another error status.
+
+        Example:
+            >>> placement = api.get_placement_by_id(3)
+            >>> print(placement["name"])
+            'dc1-vmware'
+        """
+        res = self.get(f"api/v2/placements/{placement_id}")
+        logging.debug("get_placement_by_id id=%s", placement_id)
+        return res.json().get("data", {})
+
     def get_clients_list(self):
         """
         Get a clients list.
