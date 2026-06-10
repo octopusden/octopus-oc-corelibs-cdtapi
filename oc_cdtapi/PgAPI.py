@@ -4,12 +4,40 @@ from urllib.parse import quote
 from oc_cdtapi import API
 from oc_cdtapi.API import HttpAPIError
 
+_SUPPORTED_VERSIONS = ("v1", "v2")
 
 class PostgresAPI(API.HttpAPI):
     _env_prefix = 'PSQL'
     _env_token = 'TOKEN'
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, *args, api_version: str = "v1", **kwargs):
+        """
+        Args:
+            api_version: API version to use for task endpoints — ``"v1"`` (default)
+                         targets ``/rest/api/1/tasks`` while ``"v2"`` targets
+                         ``/api/v2/tasks``.  All non-task endpoints always use v1.
+        """
+        if api_version not in _SUPPORTED_VERSIONS:
+            raise ValueError(f"api_version must be one of {_SUPPORTED_VERSIONS}, got {api_version!r}")
+        self._api_version = api_version
         super().__init__(*args, **kwargs)
+
+    @property
+    def _tasks_base(self) -> str:
+        """URL prefix for task endpoints, selected by api_version."""
+        return "api/v2" if self._api_version == "v2" else "rest/api/1"
+
+    def _unwrap_tasks(self, response) -> list:
+        """
+        Normalise a tasks response to a plain list regardless of API version.
+
+        v1 returns a list directly.
+        v2 returns ``{"success": true, "data": {"items": [...], ...}}``.
+        """
+        body = response.json()
+        if self._api_version == "v2":
+            return body.get("data", {}).get("items", [])
+        return body
 
     def get_citypedms_by_citype_id(self, citype):
         """
@@ -217,169 +245,248 @@ class PostgresAPI(API.HttpAPI):
 
     def post_tasks(self, request):
         """
-        Create a new tasks entry.
-
-        This method sends a POST request to create a new tasks
-        record with the provided information.
+        Create a new task entry (v1 and v2).
 
         Args:
-            request (dict): A dictionary containing the tasks information to be inserted.
+            request (dict): Task payload. v2 requires ``hostname``, ``action_code``,
+                ``status``, ``username``, and ``task_content``.
 
         Returns:
-            requests.Response: The response object from the API call.
+            requests.Response: The raw response object.
 
         Example:
-            >>> tasks = {
-                          ... "status": "Completed",
-                          ... "action_code": "create",
-                          ... "commentary": "",
-                          ... "task_content": {
-                          ...   "hardware": {
-                          ...     "memory_mb": 5120
-                          ...   },
-                          ...   "name": "hostname",
-                          ...   "username": "username"
-                          ... },
-                          ... "jira_verification_ticket": "ticket_id",
-                          ... "status_desc": "status"
-                        }
-            >>> result = api.post_tasks(tasks)
+            >>> api = PostgresAPI(api_version="v2")
+            >>> result = api.post_tasks({
+            ...     "hostname": "worker-01",
+            ...     "action_code": "DEPLOY",
+            ...     "status": "PENDING",
+            ...     "username": "user1",
+            ...     "task_content": {"version": "2.1.0"},
+            ... })
             >>> print(result.status_code)
             201
         """
-        req = f"rest/api/1/tasks"
+        req = f"{self._tasks_base}/tasks"
         res = self.post(req, json=request)
-
+        logging.debug("post_tasks via %s", self._tasks_base)
         return res
 
     def update_task(self, task_id, request):
         """
-        Create a new tasks entry.
-
-        This method sends a POST request to create a new tasks
-        record with the provided information.
+        Update a task by ID (v1 and v2).
 
         Args:
-            request (dict): A dictionary containing the tasks information to be inserted.
+            task_id (int): The task ID to update.
+            request (dict): Fields to update.
 
         Returns:
-            requests.Response: The response object from the API call.
+            requests.Response: The raw response object.
 
         Example:
-            >>> task_id = 2
-            >>> tasks = {
-                          ... "status": "Completed",
-                          ... "action_code": "create",
-                          ... "commentary": "",
-                          ... "task_content": {
-                          ...   "hardware": {
-                          ...     "memory_mb": 5120
-                          ...   },
-                          ...   "name": "hostname",
-                          ...   "username": "username"
-                          ... },
-                          ... "jira_verification_ticket": "ticket_id",
-                          ... "status_desc": "status"
-                        }
-            >>> result = api.update_task(tasks)
+            >>> api = PostgresAPI(api_version="v2")
+            >>> result = api.update_task(1, {"status": "DONE"})
             >>> print(result.status_code)
             200
         """
-        req = f"rest/api/1/tasks/{task_id}"
+        req = f"{self._tasks_base}/tasks/{task_id}"
         res = self.put(req, json=request)
-
+        logging.debug("update_task %s via %s", task_id, self._tasks_base)
         return res
 
     def get_task_by_id(self, task_id):
         """
-        Get a task by id.
+        Get a single task by ID.
 
-        This method sends a GET request to get a task by desired id.
+        - **v1**: ``GET /rest/api/1/tasks?id=<task_id>`` — filters via query param,
+          returns the first item from the list.
+        - **v2**: ``GET /api/v2/tasks/<task_id>`` — dedicated path-param endpoint,
+          returns the task directly from ``response["data"]``.
 
         Args:
-            task_id (int): An integer of the task id.
+            task_id (int): The task ID.
 
         Returns:
-            requests.Response: The response object from the API call.
-
-        Example:
-            >>> task_id = 2
-            >>> result = api.get_task_by_id(task_id)
-            >>> print(result.status_code)
-            200
+            dict | None: The task dict, or ``None`` if not found.
         """
         try:
-            payload = {"id": task_id}
-            req = f"rest/api/1/tasks"
-            res = self.get(req, params=payload)
+            if self._api_version == "v2":
+                req = f"api/v2/tasks/{task_id}"
+                res = self.get(req)
+                return res.json().get("data")
+            else:
+                req = "rest/api/1/tasks"
+                res = self.get(req, params={"id": task_id})
+                items = res.json()
+                return items[0] if items else None
         except HttpAPIError as e:
             if e.code == 404:
                 return None
-            else:
-                raise HttpAPIError(e)
-
-        return res.json()[0]
+            raise
 
     def get_task_by_id_and_username(self, task_id, username):
         """
-        Get a task by id and username.
+        Get a single task by ID and username (v1 and v2).
 
-        This method sends a GET request to get a task by desired id.
+        Returns the first matching task dict, or ``None`` if not found.
 
         Args:
-            task_id (int): An integer of the task id.
+            task_id (int): The task ID.
+            username (str): The owner username.
 
         Returns:
-            requests.Response: The response object from the API call.
-
-        Example:
-            >>> task_id = 2
-            >>> result = api.get_task_by_id(task_id)
-            >>> print(result.status_code)
-            200
+            dict | None
         """
         try:
-            payload = {"id": task_id, "username": username}
-            req = f"rest/api/1/tasks"
-            res = self.get(req, params=payload)
+            req = f"{self._tasks_base}/tasks"
+            res = self.get(req, params={"id": task_id, "username": username})
         except HttpAPIError as e:
             if e.code == 404:
                 return None
-            else:
-                raise HttpAPIError(e)
+            raise
 
-        return res.json()[0]
+        items = self._unwrap_tasks(res)
+        return items[0] if items else None
 
     def get_task_custom_filter(self, **kwargs):
         """
-        Get a task by custom filter.
+        Get tasks matching arbitrary filter params (v1 and v2).
 
-        This method sends a GET request to get a task by custom filter.
+        Returns a plain list of task dicts regardless of API version,
+        so callers don't need to change when switching versions.
 
         Args:
-            **kwargs : Keyword arguments for filtering.
+            **kwargs: Filter parameters (e.g. ``status="Approved"``,
+                ``action_code="create"``).
 
         Returns:
-            requests.Response: The response object from the API call.
+            list[dict]
 
         Example:
-            >>> task_id = 2
-            >>> param = {"id": 1, "hostname": "test.com"}
-            >>> result = api.get_task_custom_filter(**param)
-            >>> print(result.status_code)
-            200
+            >>> api = PostgresAPI(api_version="v2")
+            >>> tasks = api.get_task_custom_filter(status="PENDING")
         """
         try:
-            req = f"rest/api/1/tasks"
+            req = f"{self._tasks_base}/tasks"
             res = self.get(req, params=kwargs)
         except HttpAPIError as e:
             if e.code == 404:
                 return []
-            else:
-                raise HttpAPIError(e)
+            raise
 
-        return res.json()
-    
+        return self._unwrap_tasks(res)
+
+    def get_tasks_paginated(self, page: int = 1, page_size: int = 20, **filters):
+        """
+        Get tasks with full pagination metadata — **v2 only**.
+
+        Returns the raw ``data`` dict from the v2 envelope:
+        ``{"page": 1, "page_size": 20, "total": N, "items": [...]}``.
+
+        Raises:
+            RuntimeError: If called on a v1 instance.
+
+        Args:
+            page (int): Page number (1-based).
+            page_size (int): Items per page (max 100).
+            **filters: Optional filter params (``status``, ``action_code``, ``username``).
+
+        Returns:
+            dict: Pagination envelope with ``items``, ``total``, ``page``, ``page_size``.
+
+        Example:
+            >>> api = PostgresAPI(api_version="v2")
+            >>> result = api.get_tasks_paginated(page=1, page_size=10, status="PENDING")
+            >>> print(result["total"])
+            42
+            >>> print(result["items"][0]["hostname"])
+            'worker-node-01'
+        """
+        if self._api_version != "v2":
+            raise RuntimeError("get_tasks_paginated is only available with api_version='v2'")
+
+        params = {"page": page, "page_size": page_size, **filters}
+        res = self.get("api/v2/tasks", params=params)
+        logging.debug("get_tasks_paginated page=%s page_size=%s filters=%s", page, page_size, filters)
+        return res.json().get("data", {})
+
+    def get_all_placements(self, visible_on_ui: bool = None) -> list:
+        """
+        Get all placements — always uses v2.
+
+        Each item contains: ``id``, ``name``, ``visible_on_ui``, ``requires_wrap``,
+        ``backup``, ``provider_resources``, and a nested ``provider`` dict with
+        ``id`` and ``name``.
+
+        Args:
+            visible_on_ui: When ``True``, only return placements visible on the UI.
+                           ``None`` (default) returns all.
+
+        Returns:
+            list[dict]: All matching placement dicts.
+
+        Example:
+            >>> placements = api.get_all_placements(visible_on_ui=True)
+            >>> print(placements[0]["provider"]["name"])
+            'OpenStack'
+        """
+        params = {}
+        if visible_on_ui is not None:
+            params["visible_on_ui"] = visible_on_ui
+        res = self.get("api/v2/placements", params={"page_size": -1, **params})
+        logging.debug("get_all_placements visible_on_ui=%s", visible_on_ui)
+        return res.json().get("data", {}).get("items", [])
+
+    def get_placement(self, name: str) -> list:
+        """
+        Get placements by name — always uses v2 (placements are v2-only).
+
+        Returns a plain list of placement dicts matching the given name.
+        Each item contains: ``id``, ``name``, ``visible_on_ui``, ``requires_wrap``,
+        ``backup``.
+
+        .. note::
+            The v2 placements model does not include a ``domain`` field.  If your
+            calling code accesses ``placement["domain"]``, that field must first be
+            added to the ``Placements`` model and ``Read`` DTO in
+            ``idp-postgres-api-service``.
+
+        Args:
+            name (str): Placement name to filter by.
+
+        Returns:
+            list[dict]: Matching placement dicts (empty list if none found).
+
+        Example:
+            >>> placements = api.get_placement("dc1-vmware")
+            >>> print(placements[0]["id"])
+            3
+        """
+        res = self.get("api/v2/placements", params={"name": name})
+        logging.debug("get_placement name=%s", name)
+        return res.json().get("data", {}).get("items", [])
+
+    def get_placement_by_id(self, placement_id: int) -> dict:
+        """
+        Get a single placement by its ID — always uses v2.
+
+        Args:
+            placement_id (int): The placement's primary key.
+
+        Returns:
+            dict: The placement dict, including nested ``provider``.
+
+        Raises:
+            requests.HTTPError: If the server returns 404 or another error status.
+
+        Example:
+            >>> placement = api.get_placement_by_id(3)
+            >>> print(placement["name"])
+            'dc1-vmware'
+        """
+        res = self.get(f"api/v2/placements/{placement_id}")
+        logging.debug("get_placement_by_id id=%s", placement_id)
+        return res.json().get("data", {})
+
     def get_clients_list(self):
         """
         Get a clients list.
