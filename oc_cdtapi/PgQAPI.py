@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import psycopg2
+import sys
 from urllib.parse import urlparse
 
 
@@ -111,7 +112,7 @@ class PgQAPI (object):
         logging.debug(message)
         return message
 
-    def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None):
+    def enqueue_message(self, queue_code=None, msg_text=None, priority=50, pg_connection=None, src_process=None):
         logging.debug('reached enqueue_message')
         if pg_connection:
             logging.debug('using provided connection')
@@ -119,10 +120,12 @@ class PgQAPI (object):
         else:
             conn = self.conn
         logging.debug('will try to create message [%s] in queue [%s]' % (msg_text, queue_code) )
+        if src_process is None:
+            src_process = sys.argv[0] if len(sys.argv) > 0 else 'unknown'
         q_id = self.get_queue_id(queue_code)
         csr = conn.cursor()
-        q = 'insert into queue_message (queue_type__oid, status, payload, priority) values (%s, %s, %s, %s)'
-        csr.execute(q, (q_id, 'N', json.dumps(msg_text), priority) )
+        q = 'insert into queue_message (queue_type__oid, status, payload, priority, src_process) values (%s, %s, %s, %s, %s)'
+        csr.execute(q, (q_id, 'N', json.dumps(msg_text), priority, src_process) )
         conn.commit()
 
     def exec_select(self, q, parms=None):
