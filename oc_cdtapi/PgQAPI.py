@@ -121,8 +121,8 @@ class PgQAPI (object):
         logging.debug('will try to create message [%s] in queue [%s]' % (msg_text, queue_code) )
         q_id = self.get_queue_id(queue_code)
         csr = conn.cursor()
-        q = 'insert into queue_message (queue_type__oid, status, payload, priority) values (%s, %s, %s, %s)'
-        csr.execute(q, (q_id, 'N', json.dumps(msg_text), priority) )
+        q = 'insert into queue_message (queue_type__oid, status, payload, priority, src_process) values (%s, %s, %s, %s, %s)'
+        csr.execute(q, (q_id, 'N', json.dumps(msg_text), priority, __file__) )
         conn.commit()
 
     def exec_select(self, q, parms=None):
