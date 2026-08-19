@@ -115,12 +115,12 @@ class _ForemanAPI(ForemanAPI):
             return '{"results": [{"id": 215, "name": "Run \\"cdt-resize-partition\\" role CDT"}]}'
         elif re.match('.+\/job_invocations/999', url):
             return '{"succeeded": 1, "pending": 0}'
-        elif re.match('.+\/job_invocations', url):
-            return '{"id": 999, "status": "ok"}'
         elif re.match(r'.+/job_invocations\?search=host=test-ansible-vm-empty', url):
             return '{"results": []}'
         elif re.match(r'.+/job_invocations\?search=host=test-ansible-vm', url):
             return '{"results": [{"id": 1000, "status": 0, "status_label": "succeeded"}]}'
+        elif re.match('.+\/job_invocations', url):
+            return '{"id": 999, "status": "ok"}'
         return '[]'
 
 class TestForemanAPI(unittest.TestCase):
