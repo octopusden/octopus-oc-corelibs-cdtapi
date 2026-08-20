@@ -115,6 +115,10 @@ class _ForemanAPI(ForemanAPI):
             return '{"results": [{"id": 215, "name": "Run \\"cdt-resize-partition\\" role CDT"}]}'
         elif re.match('.+\/job_invocations/999', url):
             return '{"succeeded": 1, "pending": 0}'
+        elif re.match(r'.+/job_invocations\?search=host=test-ansible-vm-empty', url):
+            return '{"results": []}'
+        elif re.match(r'.+/job_invocations\?search=host=test-ansible-vm', url):
+            return '{"results": [{"id": 1000, "status": 0, "status_label": "succeeded"}]}'
         elif re.match('.+\/job_invocations', url):
             return '{"id": 999, "status": "ok"}'
         return '[]'
@@ -738,3 +742,12 @@ class TestForemanAPI(unittest.TestCase):
 
         self.assertEqual(e.exception.code, 400)
         self.assertIn("missing variables", e.exception.text)
+
+    def test_check_latest_job_invocation_found(self):
+        job = self.api.check_latest_job_invocation("test-ansible-vm")
+        self.assertEqual(job["id"], 1000)
+        self.assertEqual(job["status"], 0)
+
+    def test_check_latest_job_invocation_none(self):
+        job = self.api.check_latest_job_invocation("test-ansible-vm-empty")
+        self.assertIsNone(job)

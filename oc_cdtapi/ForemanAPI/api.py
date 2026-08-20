@@ -1381,6 +1381,31 @@ class ForemanAPI(HttpAPI):
             sleep(poll_interval)
 
         return bool(response.json().get("succeeded", False))
+    
+    def check_latest_job_invocation(self, vm_name):
+        """
+        Returns the latest job invocation for the given host, or None if no invocation has run yet.
+        Foreman keeps job invocation history per hostname indefinitely (e.g. across a delete+recreate
+        with the same name, or a manual re-run), so results are sorted by id descending and only the
+        *latest* invocation - not the first ever - is returned, since that's what reflects the current
+        build.
+        The returned dict's "status" is Foreman's HostStatus::ExecutionStatus code (see
+        foreman_remote_execution/app/models/host_status/execution_status.rb):
+        0 = OK/succeeded, 1 = ERROR/failed, 2 = QUEUED, 3 = RUNNING, 4 = CANCELLED.
+        :param vm_name: str, the host's FQDN
+        :return: dict or None - the latest job invocation, None if none has run against the host yet
+        """
+        logging.debug('Reached check_latest_job_invocation')
+        logging.debug('vm_name = [%s]' % vm_name)
+        params = {"search": "host={}".format(vm_name), "order": "id DESC"}
+        response = self.get("job_invocations", params=params).json()
+        results = response.get("results", [])
+
+        if not results:
+            logging.debug('No job invocations found for [%s]' % vm_name)
+            return None
+
+        return results[0]
 
     def get_parameter_value(self, hostname, parameter_name):
         """
