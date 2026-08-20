@@ -111,7 +111,7 @@ class TestPgQAPI(unittest.TestCase):
         pgq = PgQAPI.PgQAPI(pg_connection=mock_conn)
         pgq.exec_select = MagicMock(return_value=[10])
         msg = pgq.get_msg(10)
-        pgq.exec_select.assrt_called_once()
+        pgq.exec_select.assert_called_once()
         self.assertEqual(msg, 10)
 
 
