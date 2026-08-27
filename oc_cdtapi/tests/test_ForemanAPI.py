@@ -730,16 +730,19 @@ class TestForemanAPI(unittest.TestCase):
 
     @patch.object(ForemanAPI, 'get_ansible_role')
     @patch.object(ForemanAPI, 'post')
-    def test_assign_ansible_roles_logs_unresolved_role(self, mock_post, mock_get_ansible_role):
+    @patch('oc_cdtapi.ForemanAPI.api.logging.warning')
+    def test_assign_ansible_roles_logs_unresolved_role(self, mock_warning, mock_post, mock_get_ansible_role):
+        # assertLogs is not used here since some sibling test modules disable the root
+        # logger at import time with no teardown (logging.getLogger().disabled = True),
+        # which silently breaks assertLogs when the whole test suite runs together.
         mock_get_ansible_role.return_value = [
             {"id": 51, "name": "roles-one"},
         ]
         mock_post.return_value = None
 
-        with self.assertLogs(level='WARNING') as logs:
-            self.api.assign_ansible_roles("test-host-name", ["roles-one", "roles-missing"])
+        self.api.assign_ansible_roles("test-host-name", ["roles-one", "roles-missing"])
 
-        self.assertTrue(any("roles-missing" in message for message in logs.output))
+        self.assertTrue(any("roles-missing" in str(call_args) for call_args in mock_warning.call_args_list))
 
         payload = {
             "ansible_role_ids": [51]
