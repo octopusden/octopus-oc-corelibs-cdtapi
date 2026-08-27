@@ -1521,16 +1521,18 @@ class ForemanAPI(HttpAPI):
         logging.debug(f'Hostname: [{hostname}]')
         logging.debug(f'Roles: [{roles}]')
 
-        role_ids = []
-        role_names = []
-
         if isinstance(roles, (str, int)):
             roles = [roles]
 
-        roles = self.get_ansible_role(roles)
-        for role in roles:
-            role_ids.append(role.get("id"))
-            role_names.append(role.get("name"))
+        requested = list(roles)
+        resolved = self.get_ansible_role(requested)
+        by_id = {role.get("id"): role for role in resolved}
+        by_name = {role.get("name"): role for role in resolved}
+        ordered = [by_id.get(item) if isinstance(item, int) else by_name.get(item) for item in requested]
+        ordered = [role for role in ordered if role is not None]
+
+        role_ids = [role.get("id") for role in ordered]
+        role_names = [role.get("name") for role in ordered]
 
         payload = {
             "ansible_role_ids": role_ids
@@ -1550,23 +1552,16 @@ class ForemanAPI(HttpAPI):
         logging.debug(f'Hostname: [{hostname}]')
         logging.debug(f'Roles: [{roles}]')
 
-        role_ids = []
         updated_dict = {}
 
         if not isinstance(roles, dict):
             raise ForemanAPIError(code=400, text="Input must be in dict")
 
-        temp_roles = []
-        for role, variable in roles.items():
-            temp_roles.append(role)
+        temp_roles = list(roles.keys())
 
         new_roles = self.get_ansible_role(temp_roles)
-        for new_role in new_roles:
-            role_ids.append(new_role.get("id"))
-            if not roles.get(new_role.get("id")):
-                continue
-
-            roles[new_role.get("name")] = roles.pop(new_role.get("id"))
+        by_name = {new_role.get("name"): new_role.get("id") for new_role in new_roles}
+        role_ids = [by_name[name] for name in temp_roles if name in by_name]
 
         payload = {
             "ansible_role_ids": role_ids
