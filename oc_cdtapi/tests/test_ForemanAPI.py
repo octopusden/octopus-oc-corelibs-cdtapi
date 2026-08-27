@@ -728,6 +728,28 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(first_post_call[0][0], "hosts/test-host-name/assign_ansible_roles")
         self.assertEqual(first_post_call[1]['json'], {"ansible_role_ids": [52, 51, 53]})
 
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_logs_unresolved_role(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one"},
+        ]
+        mock_post.return_value = None
+
+        with self.assertLogs(level='WARNING') as logs:
+            self.api.assign_ansible_roles("test-host-name", ["roles-one", "roles-missing"])
+
+        self.assertTrue(any("roles-missing" in message for message in logs.output))
+
+        payload = {
+            "ansible_role_ids": [51]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
     def test_assign_ansible_roles_and_override_not_dict(self):
         payload = ["roles-one"]
 
