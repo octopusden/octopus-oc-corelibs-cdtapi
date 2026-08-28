@@ -1511,6 +1511,23 @@ class ForemanAPI(HttpAPI):
         logging.debug(f"About to return {response.get('subtotal')} roles")
         return response.get("results")
 
+    def _order_resolved_roles(self, requested, resolved):
+        """
+        Re-maps roles resolved via get_ansible_role back onto the order of `requested`
+        (a list of role names and/or ids), since Foreman's search response order does not
+        preserve it. Requested identifiers with no matching resolved role are dropped and
+        logged as a warning.
+        """
+        by_id = {role.get("id"): role for role in resolved}
+        by_name = {role.get("name"): role for role in resolved}
+        ordered = [by_id.get(item) if isinstance(item, int) else by_name.get(item) for item in requested]
+
+        unresolved = [item for item, role in zip(requested, ordered) if role is None]
+        if unresolved:
+            logging.warning(f'Requested ansible roles not found in Foreman, skipping: {unresolved}')
+
+        return [role for role in ordered if role is not None]
+
     def assign_ansible_roles(self, hostname, roles):
         """
         Assign an ansible roles and override value by given role_id and kwargs to specific hostname.
@@ -1521,16 +1538,15 @@ class ForemanAPI(HttpAPI):
         logging.debug(f'Hostname: [{hostname}]')
         logging.debug(f'Roles: [{roles}]')
 
-        role_ids = []
-        role_names = []
-
         if isinstance(roles, (str, int)):
             roles = [roles]
 
-        roles = self.get_ansible_role(roles)
-        for role in roles:
-            role_ids.append(role.get("id"))
-            role_names.append(role.get("name"))
+        requested = list(roles)
+        resolved = self.get_ansible_role(requested)
+        ordered = self._order_resolved_roles(requested, resolved)
+
+        role_ids = [role.get("id") for role in ordered]
+        role_names = [role.get("name") for role in ordered]
 
         payload = {
             "ansible_role_ids": role_ids
@@ -1550,23 +1566,16 @@ class ForemanAPI(HttpAPI):
         logging.debug(f'Hostname: [{hostname}]')
         logging.debug(f'Roles: [{roles}]')
 
-        role_ids = []
         updated_dict = {}
 
         if not isinstance(roles, dict):
             raise ForemanAPIError(code=400, text="Input must be in dict")
 
-        temp_roles = []
-        for role, variable in roles.items():
-            temp_roles.append(role)
+        temp_roles = list(roles.keys())
 
         new_roles = self.get_ansible_role(temp_roles)
-        for new_role in new_roles:
-            role_ids.append(new_role.get("id"))
-            if not roles.get(new_role.get("id")):
-                continue
-
-            roles[new_role.get("name")] = roles.pop(new_role.get("id"))
+        ordered = self._order_resolved_roles(temp_roles, new_roles)
+        role_ids = [role.get("id") for role in ordered]
 
         payload = {
             "ansible_role_ids": role_ids

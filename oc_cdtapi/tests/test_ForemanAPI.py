@@ -606,6 +606,28 @@ class TestForemanAPI(unittest.TestCase):
 
     @patch.object(ForemanAPI, 'get_ansible_role')
     @patch.object(ForemanAPI, 'post')
+    def test_assign_ansible_roles_preserves_requested_order(self, mock_post, mock_get_ansible_role):
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one"},
+            {"id": 52, "name": "roles-two"},
+            {"id": 53, "name": "roles-three"},
+        ]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles(
+            "test-host-name", ["roles-two", "roles-one", "roles-three"])
+
+        payload = {
+            "ansible_role_ids": [52, 51, 53]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
     @patch.object(ForemanAPI, 'get')
     def test_assign_ansible_roles_and_override(self, mock_get, mock_post, mock_get_ansible_role):
         # Mock post (1 assign + 4 overrides)
@@ -679,6 +701,57 @@ class TestForemanAPI(unittest.TestCase):
         self.assertIn("1.2.3", str(override_calls[2]))
         self.assertIn("6-another-extras", str(override_calls[3]))
         self.assertIn("random", str(override_calls[3]))
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    @patch.object(ForemanAPI, 'get')
+    def test_assign_ansible_roles_and_override_preserves_requested_order(
+            self, mock_get, mock_post, mock_get_ansible_role):
+        mock_get.return_value.json.return_value = {"results": []}
+        mock_post.return_value = MagicMock()
+
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one"},
+            {"id": 52, "name": "roles-two"},
+            {"id": 53, "name": "roles-three"},
+        ]
+
+        payload = {
+            "roles-two": {},
+            "roles-one": {},
+            "roles-three": {},
+        }
+
+        self.api.assign_ansible_roles_and_override("test-host-name", payload)
+
+        first_post_call = mock_post.call_args_list[0]
+        self.assertEqual(first_post_call[0][0], "hosts/test-host-name/assign_ansible_roles")
+        self.assertEqual(first_post_call[1]['json'], {"ansible_role_ids": [52, 51, 53]})
+
+    @patch.object(ForemanAPI, 'get_ansible_role')
+    @patch.object(ForemanAPI, 'post')
+    @patch('oc_cdtapi.ForemanAPI.api.logging.warning')
+    def test_assign_ansible_roles_logs_unresolved_role(self, mock_warning, mock_post, mock_get_ansible_role):
+        # assertLogs is not used here since some sibling test modules disable the root
+        # logger at import time with no teardown (logging.getLogger().disabled = True),
+        # which silently breaks assertLogs when the whole test suite runs together.
+        mock_get_ansible_role.return_value = [
+            {"id": 51, "name": "roles-one"},
+        ]
+        mock_post.return_value = None
+
+        self.api.assign_ansible_roles("test-host-name", ["roles-one", "roles-missing"])
+
+        self.assertTrue(any("roles-missing" in str(call_args) for call_args in mock_warning.call_args_list))
+
+        payload = {
+            "ansible_role_ids": [51]
+        }
+        mock_post.assert_called_once_with(
+            "hosts/test-host-name/assign_ansible_roles",
+            headers=self.api.headers,
+            json=payload
+        )
 
     def test_assign_ansible_roles_and_override_not_dict(self):
         payload = ["roles-one"]
