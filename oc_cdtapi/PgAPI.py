@@ -578,6 +578,55 @@ class PostgresAPI(API.HttpAPI):
 
         return res
 
+    def get_dump(self, gav):
+        """
+        Get a single dump by its GAV
+
+        Returns ``None`` if no dump with that GAV has been indexed yet.
+
+        Args:
+            gav (str): The dump's GAV (Group:Artifact:Version).
+
+        Returns:
+            dict | None: The dump dict, or ``None`` if not found.
+
+        Example:
+            >>> dump = api.get_dump("group:artifact:1.0")
+            >>> print(dump["size"])
+            123456789
+        """
+        try:
+            res = self.get(f"api/v2/dumps/{gav}")
+        except HttpAPIError as e:
+            if e.code == 404:
+                return None
+            raise
+        logging.debug("get_dump gav=%s", gav)
+        return res.json().get("data", {})
+
+    def list_dumps(self, page: int = 1, page_size: int = 20, **filters) -> dict:
+        """
+        Get dumps with pagination metadata
+
+        Args:
+            page (int): Page number (1-based).
+            page_size (int): Items per page (max 100, or -1 for all rows).
+            **filters: Optional filter params (``client_code``, ``ci_type``,
+                ``product_type``, ``product_version``, ``instance_type``).
+
+        Returns:
+            dict: Pagination envelope with ``items``, ``total``, ``page``, ``page_size``.
+
+        Example:
+            >>> result = api.list_dumps(client_code="CT")
+            >>> print(result["items"][0]["gav"])
+            'group:artifact:1.0'
+        """
+        params = {"page": page, "page_size": page_size, **filters}
+        res = self.get("api/v2/dumps", params=params)
+        logging.debug("list_dumps page=%s page_size=%s filters=%s", page, page_size, filters)
+        return res.json().get("data", {})
+
     def get_client_distributions(self, code, citype):
         """
         Retrieve distribution information for a client.
