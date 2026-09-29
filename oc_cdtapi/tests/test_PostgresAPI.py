@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from oc_cdtapi.PgAPI import PostgresAPI
+from oc_cdtapi.API import HttpAPIError
 
 class TestPostgresAPI(unittest.TestCase):
 
@@ -257,6 +258,58 @@ class TestPostgresAPI(unittest.TestCase):
         self.api.post_new_component(mock_payload)
 
         mock_post.assert_called_once_with(f'rest/api/1/manage_citype', json=mock_payload)
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_dump_found(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {"id": 1, "gav": "group:artifact:1.0", "size": 123456789},
+        }
+        mock_get.return_value = mock_response
+
+        result = self.api.get_dump("group:artifact:1.0")
+
+        self.assertEqual(result["gav"], "group:artifact:1.0")
+        self.assertEqual(result["size"], 123456789)
+        mock_get.assert_called_once_with("api/v2/dumps/group:artifact:1.0")
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_dump_not_found(self, mock_get):
+        mock_get.side_effect = HttpAPIError(code=404, url="api/v2/dumps/missing:artifact:1.0")
+
+        result = self.api.get_dump("missing:artifact:1.0")
+
+        self.assertIsNone(result)
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_dump_reraises_non_404_errors(self, mock_get):
+        mock_get.side_effect = HttpAPIError(code=500, url="api/v2/dumps/group:artifact:1.0")
+
+        with self.assertRaises(HttpAPIError):
+            self.api.get_dump("group:artifact:1.0")
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_list_dumps(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {
+                "page": 1,
+                "page_size": 20,
+                "total": 1,
+                "items": [{"id": 1, "gav": "group:artifact:1.0", "client_code": "CT"}],
+            },
+        }
+        mock_get.return_value = mock_response
+
+        result = self.api.list_dumps(client_code="CT")
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["client_code"], "CT")
+        mock_get.assert_called_once_with(
+            "api/v2/dumps", params={"page": 1, "page_size": 20, "client_code": "CT"}
+        )
 
 
 if __name__ == '__main__':
