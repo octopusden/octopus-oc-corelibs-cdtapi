@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch, MagicMock, call, PropertyMock
 from datetime import datetime, timedelta
 from collections import namedtuple
-from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError
+from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError, HostComputeAttributes, PartitionUsage
 
 class _Response(object):
     """
@@ -131,6 +131,20 @@ def _mock_response(data, status_code=200):
     response.status_code = status_code
     response.json.return_value = data
     return response
+
+def _vm_compute_attributes(**fields):
+    """
+    vm_compute_attributes response of a VMware host (fog-vsphere shape), with the given fields set
+    """
+    data = {
+        "cpus": 2,
+        "memory_mb": 4096,
+        "power_state": "poweredOn",
+        "name": "test-vm",
+        "volumes_attributes": {"0": {"name": "Hard disk 1", "size_gb": 40}}
+    }
+    data.update(fields)
+    return data
 
 class TestForemanAPI(unittest.TestCase):
 
@@ -323,6 +337,114 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(result.power_state, "poweredOff")
         self.assertEqual(result.memory_mb, 5120)
         self.assertEqual(result.disk_size, 100)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_partitions(self, mock_get):
+        mock_get.return_value = _mock_response(_vm_compute_attributes(partitions=[
+            {"path": "/", "free": 2147483648, "capacity": 10737418240},
+            {"path": "/local", "free": 1073741824, "capacity": 21474836480}
+        ]))
+
+        result = self.api.get_host_compute_attributes("host.example")
+
+        mock_get.assert_called_once_with("hosts/host.example/vm_compute_attributes")
+        self.assertEqual(result.partitions, [
+            PartitionUsage(path="/", capacity=10737418240, free=2147483648),
+            PartitionUsage(path="/local", capacity=21474836480, free=1073741824),
+        ])
+        self.assertEqual([partition.used_percent for partition in result.partitions], [80.0, 95.0])
+        self.assertIsInstance(result.partitions[0].used_percent, float)
+        self.assertEqual(result.power_state, "poweredOn")
+        self.assertEqual(result.disk_size, 40)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_without_partitions(self, mock_get):
+        # powered-off VMs and VMs without VMware Tools report no partitions
+        responses = {
+            "no key": _vm_compute_attributes(power_state="poweredOff"),
+            "null": _vm_compute_attributes(power_state="poweredOff", partitions=None),
+            "empty list": _vm_compute_attributes(power_state="poweredOff", partitions=[]),
+        }
+        for case, data in responses.items():
+            with self.subTest(case=case):
+                mock_get.return_value = _mock_response(data)
+
+                result = self.api.get_host_compute_attributes("host.example")
+
+                self.assertIsNone(result.partitions)
+                self.assertEqual(result.power_state, "poweredOff")
+                self.assertEqual(result.disk_size, 40)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_without_compute_resource(self, mock_get):
+        for data in ({}, None):
+            with self.subTest(data=data):
+                mock_get.return_value = _mock_response(data)
+
+                result = self.api.get_host_compute_attributes("host.example")
+
+                self.assertEqual(result, HostComputeAttributes(None, None, None, None))
+                self.assertIsNone(result.partitions)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_malformed_partitions(self, mock_get):
+        mock_get.return_value = _mock_response(_vm_compute_attributes(partitions=[
+            {"free": 1073741824, "capacity": 10737418240},
+            {"path": "", "free": 1073741824, "capacity": 10737418240},
+            "not-a-partition",
+            {"path": "/boot", "free": 1073741824},
+            {"path": "/var", "free": 0, "capacity": 0},
+            {"path": "/srv", "capacity": 1073741824},
+            {"path": "/opt", "free": "n/a", "capacity": "unknown"},
+            {"path": "/tmp", "free": "536870912", "capacity": "1073741824"}
+        ]))
+
+        result = self.api.get_host_compute_attributes("host.example")
+
+        # entries without a path are skipped, the others are kept
+        self.assertEqual([partition.path for partition in result.partitions], ["/boot", "/var", "/srv", "/opt", "/tmp"])
+        self.assertEqual([partition.used_percent for partition in result.partitions], [None, None, None, None, 50.0])
+        self.assertEqual(result.partitions[3], PartitionUsage(path="/opt", capacity=None, free=None))
+        self.assertEqual(result.partitions[4], PartitionUsage(path="/tmp", capacity=1073741824, free=536870912))
+
+    def test_host_compute_attributes_unusable_partitions(self):
+        # no usable entry, or not a list at all
+        for partitions in ([{"capacity": 10737418240}, None], {"path": "/"}, "/"):
+            with self.subTest(partitions=partitions):
+                result = HostComputeAttributes.from_json(_vm_compute_attributes(partitions=partitions))
+
+                self.assertIsNone(result.partitions)
+                self.assertEqual(result.power_state, "poweredOn")
+
+    def test_host_compute_attributes_positional_arguments(self):
+        attributes = HostComputeAttributes(2, 4096, 40, "poweredOn")
+
+        self.assertEqual(attributes.cpus, 2)
+        self.assertEqual(attributes.memory_mb, 4096)
+        self.assertEqual(attributes.disk_size, 40)
+        self.assertEqual(attributes.power_state, "poweredOn")
+        self.assertIsNone(attributes.partitions)
+        self.assertEqual(attributes.to_json(), {
+            "cpus": 2,
+            "memory_mb": 4096,
+            "disk_size": 40,
+            "power_state": "poweredOn",
+            "partitions": None
+        })
+
+    def test_host_compute_attributes_to_json_with_partitions(self):
+        partitions = [{"path": "/", "free": 2147483648, "capacity": 10737418240}]
+        attributes = HostComputeAttributes.from_json(_vm_compute_attributes(partitions=partitions))
+
+        self.assertEqual(attributes.to_json(), {
+            "cpus": 2,
+            "memory_mb": 4096,
+            "disk_size": 40,
+            "power_state": "poweredOn",
+            "partitions": partitions
+        })
+        # the JSON partitions read back to the same objects
+        self.assertEqual(HostComputeAttributes.from_json(attributes.to_json()).partitions, attributes.partitions)
 
     def test_get_job_template_id(self):
         response = self.api.get_job_template_id("Run \"cdt-resize-partition\" role CDT")
