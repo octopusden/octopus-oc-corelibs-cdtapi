@@ -1226,6 +1226,100 @@ class ForemanAPI(HttpAPI):
         host_attributes = self.get_host_compute_attributes(hostname=hostname)
         return host_attributes.memory_mb
 
+    def _get_all_pages(self, req, params=None, per_page=100):
+        """
+        Sends a paged GET request and collects the 'results' of every page.
+        Stops at the first empty page, or once 'subtotal' (or 'total') results are collected.
+        :param req: str, request sub-URL
+        :param params: dict, extra query parameters
+        :param per_page: int, page size
+        :return: list
+        """
+        logging.debug('Reached _get_all_pages')
+        results = []
+        page = 1
+        while True:
+            page_params = dict(params or {}, page=page, per_page=per_page)
+            response = self.get(req, params=page_params).json()
+            page_results = response.get("results") or []
+            if not page_results:
+                break
+
+            results.extend(page_results)
+            expected = response.get("subtotal", response.get("total"))
+            if isinstance(expected, int) and len(results) >= expected:
+                break
+
+            page += 1
+
+        logging.debug('Collected [%s] results of [%s] in [%s] request(s)' % (len(results), req, page))
+        return results
+
+    def get_all_hosts(self, search=None, thin=False, per_page=100) -> list:
+        """
+        Returns all hosts, reading every page of the host list
+        :param search: str, Foreman search query (optional)
+        :param thin: bool, if True only id and name of each host are returned
+        :param per_page: int, page size
+        :return: list of host dicts
+        """
+        logging.debug('Reached get_all_hosts')
+        params = {}
+        if search:
+            params["search"] = search
+        if thin:
+            params["thin"] = "true"
+        return self._get_all_pages("hosts", params=params, per_page=per_page)
+
+    def get_common_parameters(self, search=None) -> dict:
+        """
+        Returns Foreman global parameters, values kept as returned by Foreman
+        :param search: str, Foreman search query (optional), e.g. "name ~ hook"
+        :return: dict of {name: value}
+        """
+        logging.debug('Reached get_common_parameters')
+        params = {}
+        if search:
+            params["search"] = search
+        parameters = self._get_all_pages("common_parameters", params=params)
+        return {parameter["name"]: parameter.get("value") for parameter in parameters}
+
+    def get_host_enc(self, hostname) -> dict:
+        """
+        Returns the ENC (external node classifier) document of the host
+        :param hostname: str
+        :return: dict with 'parameters', 'classes', 'environment'
+        """
+        logging.debug('Reached get_host_enc')
+        logging.debug('hostname = [%s]' % hostname)
+        data = self.get(posixpath.join("hosts", hostname, "enc")).json()
+        # Foreman wraps the ENC document in {"data": {...}}
+        return data.get("data", data)
+
+    def get_usergroup_members(self, group_name) -> list:
+        """
+        Returns the direct member users of a user group (members of nested groups are not included)
+        :param group_name: str
+        :return: list of dicts with firstname, lastname, login
+        """
+        logging.debug('Reached get_usergroup_members')
+        logging.debug('group_name = [%s]' % group_name)
+        # the name is quoted as is, so names with spaces match too
+        params = {'search': 'name = "%s"' % group_name}
+        groups = self.get("usergroups", params=params).json().get("results") or []
+        group_ids = [group["id"] for group in groups if group.get("name") == group_name]
+        if not group_ids:
+            raise ForemanAPIError(code=404, text=f"The user group [{group_name}] is not found")
+
+        group = self.get(posixpath.join("usergroups", str(group_ids[0]))).json()
+        members = []
+        # the group lists only id and login of each member, so names are read from the user itself
+        for member in group.get("users") or []:
+            user = self.get(posixpath.join("users", str(member["id"]))).json()
+            members.append({"firstname": user.get("firstname"), "lastname": user.get("lastname"),
+                            "login": user.get("login")})
+        return members
+
     def get_all_users(self):
         """
         :return: list
