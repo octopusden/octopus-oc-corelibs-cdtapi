@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch, MagicMock, call, PropertyMock
 from datetime import datetime, timedelta
 from collections import namedtuple
-from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError
+from oc_cdtapi.ForemanAPI import ForemanAPI, ForemanAPIError, HostComputeAttributes, PartitionUsage
 
 class _Response(object):
     """
@@ -122,6 +122,29 @@ class _ForemanAPI(ForemanAPI):
         elif re.match('.+\/job_invocations', url):
             return '{"id": 999, "status": "ok"}'
         return '[]'
+
+def _mock_response(data, status_code=200):
+    """
+    MagicMock response returning data from json()
+    """
+    response = MagicMock()
+    response.status_code = status_code
+    response.json.return_value = data
+    return response
+
+def _vm_compute_attributes(**fields):
+    """
+    vm_compute_attributes response of a VMware host (fog-vsphere shape), with the given fields set
+    """
+    data = {
+        "cpus": 2,
+        "memory_mb": 4096,
+        "power_state": "poweredOn",
+        "name": "test-vm",
+        "volumes_attributes": {"0": {"name": "Hard disk 1", "size_gb": 40}}
+    }
+    data.update(fields)
+    return data
 
 class TestForemanAPI(unittest.TestCase):
 
@@ -314,6 +337,114 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(result.power_state, "poweredOff")
         self.assertEqual(result.memory_mb, 5120)
         self.assertEqual(result.disk_size, 100)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_partitions(self, mock_get):
+        mock_get.return_value = _mock_response(_vm_compute_attributes(partitions=[
+            {"path": "/", "free": 2147483648, "capacity": 10737418240},
+            {"path": "/local", "free": 1073741824, "capacity": 21474836480}
+        ]))
+
+        result = self.api.get_host_compute_attributes("host.example")
+
+        mock_get.assert_called_once_with("hosts/host.example/vm_compute_attributes")
+        self.assertEqual(result.partitions, [
+            PartitionUsage(path="/", capacity=10737418240, free=2147483648),
+            PartitionUsage(path="/local", capacity=21474836480, free=1073741824),
+        ])
+        self.assertEqual([partition.used_percent for partition in result.partitions], [80.0, 95.0])
+        self.assertIsInstance(result.partitions[0].used_percent, float)
+        self.assertEqual(result.power_state, "poweredOn")
+        self.assertEqual(result.disk_size, 40)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_without_partitions(self, mock_get):
+        # powered-off VMs and VMs without VMware Tools report no partitions
+        responses = {
+            "no key": _vm_compute_attributes(power_state="poweredOff"),
+            "null": _vm_compute_attributes(power_state="poweredOff", partitions=None),
+            "empty list": _vm_compute_attributes(power_state="poweredOff", partitions=[]),
+        }
+        for case, data in responses.items():
+            with self.subTest(case=case):
+                mock_get.return_value = _mock_response(data)
+
+                result = self.api.get_host_compute_attributes("host.example")
+
+                self.assertIsNone(result.partitions)
+                self.assertEqual(result.power_state, "poweredOff")
+                self.assertEqual(result.disk_size, 40)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_without_compute_resource(self, mock_get):
+        for data in ({}, None):
+            with self.subTest(data=data):
+                mock_get.return_value = _mock_response(data)
+
+                result = self.api.get_host_compute_attributes("host.example")
+
+                self.assertEqual(result, HostComputeAttributes(None, None, None, None))
+                self.assertIsNone(result.partitions)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_compute_attributes_malformed_partitions(self, mock_get):
+        mock_get.return_value = _mock_response(_vm_compute_attributes(partitions=[
+            {"free": 1073741824, "capacity": 10737418240},
+            {"path": "", "free": 1073741824, "capacity": 10737418240},
+            "not-a-partition",
+            {"path": "/boot", "free": 1073741824},
+            {"path": "/var", "free": 0, "capacity": 0},
+            {"path": "/srv", "capacity": 1073741824},
+            {"path": "/opt", "free": "n/a", "capacity": "unknown"},
+            {"path": "/tmp", "free": "536870912", "capacity": "1073741824"}
+        ]))
+
+        result = self.api.get_host_compute_attributes("host.example")
+
+        # entries without a path are skipped, the others are kept
+        self.assertEqual([partition.path for partition in result.partitions], ["/boot", "/var", "/srv", "/opt", "/tmp"])
+        self.assertEqual([partition.used_percent for partition in result.partitions], [None, None, None, None, 50.0])
+        self.assertEqual(result.partitions[3], PartitionUsage(path="/opt", capacity=None, free=None))
+        self.assertEqual(result.partitions[4], PartitionUsage(path="/tmp", capacity=1073741824, free=536870912))
+
+    def test_host_compute_attributes_unusable_partitions(self):
+        # no usable entry, or not a list at all
+        for partitions in ([{"capacity": 10737418240}, None], {"path": "/"}, "/"):
+            with self.subTest(partitions=partitions):
+                result = HostComputeAttributes.from_json(_vm_compute_attributes(partitions=partitions))
+
+                self.assertIsNone(result.partitions)
+                self.assertEqual(result.power_state, "poweredOn")
+
+    def test_host_compute_attributes_positional_arguments(self):
+        attributes = HostComputeAttributes(2, 4096, 40, "poweredOn")
+
+        self.assertEqual(attributes.cpus, 2)
+        self.assertEqual(attributes.memory_mb, 4096)
+        self.assertEqual(attributes.disk_size, 40)
+        self.assertEqual(attributes.power_state, "poweredOn")
+        self.assertIsNone(attributes.partitions)
+        self.assertEqual(attributes.to_json(), {
+            "cpus": 2,
+            "memory_mb": 4096,
+            "disk_size": 40,
+            "power_state": "poweredOn",
+            "partitions": None
+        })
+
+    def test_host_compute_attributes_to_json_with_partitions(self):
+        partitions = [{"path": "/", "free": 2147483648, "capacity": 10737418240}]
+        attributes = HostComputeAttributes.from_json(_vm_compute_attributes(partitions=partitions))
+
+        self.assertEqual(attributes.to_json(), {
+            "cpus": 2,
+            "memory_mb": 4096,
+            "disk_size": 40,
+            "power_state": "poweredOn",
+            "partitions": partitions
+        })
+        # the JSON partitions read back to the same objects
+        self.assertEqual(HostComputeAttributes.from_json(attributes.to_json()).partitions, attributes.partitions)
 
     def test_get_job_template_id(self):
         response = self.api.get_job_template_id("Run \"cdt-resize-partition\" role CDT")
@@ -824,3 +955,195 @@ class TestForemanAPI(unittest.TestCase):
     def test_check_latest_job_invocation_none(self):
         job = self.api.check_latest_job_invocation("test-ansible-vm-empty")
         self.assertIsNone(job)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_all_hosts_reads_every_page(self, mock_get):
+        hosts = [{"id": i, "name": "host-%s.example.com" % i} for i in range(250)]
+        mock_get.side_effect = [
+            _mock_response({"total": 250, "subtotal": 250, "page": 1, "per_page": 100, "results": hosts[0:100]}),
+            _mock_response({"total": 250, "subtotal": 250, "page": 2, "per_page": 100, "results": hosts[100:200]}),
+            _mock_response({"total": 250, "subtotal": 250, "page": 3, "per_page": 100, "results": hosts[200:250]}),
+        ]
+
+        result = self.api.get_all_hosts()
+
+        self.assertEqual(result, hosts)
+        self.assertEqual(len({host["id"] for host in result}), 250)
+        self.assertEqual(mock_get.call_args_list, [
+            call("hosts", params={"page": 1, "per_page": 100}),
+            call("hosts", params={"page": 2, "per_page": 100}),
+            call("hosts", params={"page": 3, "per_page": 100}),
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_all_hosts_passes_search_and_thin(self, mock_get):
+        mock_get.return_value = _mock_response({"subtotal": 1, "results": [{"id": 1, "name": "host.example.com"}]})
+
+        result = self.api.get_all_hosts(search="name ~ host", thin=True, per_page=50)
+
+        self.assertEqual(result, [{"id": 1, "name": "host.example.com"}])
+        mock_get.assert_called_once_with(
+            "hosts",
+            params={"search": "name ~ host", "thin": "true", "page": 1, "per_page": 50}
+        )
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_all_hosts_stops_on_empty_page(self, mock_get):
+        hosts = [{"id": i, "name": "host-%s.example.com" % i} for i in range(100)]
+        # subtotal promises 300 hosts, but the second page is empty
+        mock_get.side_effect = [
+            _mock_response({"total": 300, "subtotal": 300, "results": hosts}),
+            _mock_response({"total": 300, "subtotal": 300, "results": []}),
+            _mock_response({"total": 300, "subtotal": 300, "results": hosts}),
+        ]
+
+        result = self.api.get_all_hosts()
+
+        self.assertEqual(result, hosts)
+        self.assertEqual(mock_get.call_count, 2)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_common_parameters(self, mock_get):
+        # 'total' counts all global parameters, 'subtotal' only the ones matching the search
+        mock_get.side_effect = [
+            _mock_response({"total": 40, "subtotal": 3, "search": "name ~ hook", "results": [
+                {"id": 1, "name": "hook_disk_digest_enabled", "parameter_type": "boolean", "value": True},
+                {"id": 2, "name": "hook_used_disk_space_percentage_warning_lvl", "parameter_type": "integer", "value": 80},
+            ]}),
+            _mock_response({"total": 40, "subtotal": 3, "search": "name ~ hook", "results": [
+                {"id": 3, "name": "hook_smtp_email", "parameter_type": "string", "value": "hooks@example.com"},
+            ]}),
+        ]
+
+        result = self.api.get_common_parameters(search="name ~ hook")
+
+        self.assertEqual(result, {
+            "hook_disk_digest_enabled": True,
+            "hook_used_disk_space_percentage_warning_lvl": 80,
+            "hook_smtp_email": "hooks@example.com",
+        })
+        self.assertIs(result["hook_disk_digest_enabled"], True)
+        self.assertIsInstance(result["hook_used_disk_space_percentage_warning_lvl"], int)
+        self.assertEqual(mock_get.call_args_list, [
+            call("common_parameters", params={"search": "name ~ hook", "page": 1, "per_page": 100}),
+            call("common_parameters", params={"search": "name ~ hook", "page": 2, "per_page": 100}),
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_enc(self, mock_get):
+        enc = {
+            "classes": {},
+            "environment": "production",
+            "parameters": {"owner_email": "owner@example.com", "responsible_person": "jdoe"}
+        }
+        mock_get.return_value = _mock_response({"data": enc})
+
+        result = self.api.get_host_enc("host.example")
+
+        self.assertEqual(result, enc)
+        self.assertIn("parameters", result)
+        mock_get.assert_called_once_with("hosts/host.example/enc")
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_enc_not_wrapped(self, mock_get):
+        enc = {"parameters": {"owner_email": "owner@example.com"}}
+        mock_get.return_value = _mock_response(enc)
+
+        result = self.api.get_host_enc("host.example")
+
+        self.assertEqual(result, enc)
+
+    def test_get_host_enc_not_found(self):
+        web = MagicMock()
+        web.get.return_value = _mock_response(None, status_code=404)
+        web.get.return_value.text = '{"error": {"message": "Resource host not found by id \'missing.example\'"}}'
+        self.api.web = web
+
+        with self.assertRaises(ForemanAPIError) as err:
+            self.api.get_host_enc("missing.example")
+
+        self.assertEqual(err.exception.code, 404)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_usergroup_members(self, mock_get):
+        mock_get.side_effect = [
+            _mock_response({"subtotal": 1, "results": [{"id": 7, "name": "Support Infrastructure"}]}),
+            _mock_response({
+                "id": 7,
+                "name": "Support Infrastructure",
+                "users": [{"id": 4, "login": "jdoe", "description": None}, {"id": 5, "login": "asmith", "description": None}],
+                "usergroups": [{"id": 9, "name": "Nested group"}]
+            }),
+            _mock_response({"id": 4, "login": "jdoe", "firstname": "John", "lastname": "Doe", "mail": "jdoe@example.com"}),
+            _mock_response({"id": 5, "login": "asmith", "firstname": "Anna", "lastname": "Smith", "mail": None}),
+        ]
+
+        members = self.api.get_usergroup_members("Support Infrastructure")
+
+        self.assertEqual(members, [
+            {"firstname": "John", "lastname": "Doe", "login": "jdoe"},
+            {"firstname": "Anna", "lastname": "Smith", "login": "asmith"},
+        ])
+        # members of the nested group are not read
+        self.assertEqual(mock_get.call_args_list, [
+            call("usergroups", params={"search": 'name = "Support Infrastructure"'}),
+            call("usergroups/7"),
+            call("users/4"),
+            call("users/5"),
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_usergroup_members_empty_group(self, mock_get):
+        mock_get.side_effect = [
+            _mock_response({"subtotal": 1, "results": [{"id": 7, "name": "Support Infrastructure"}]}),
+            _mock_response({"id": 7, "name": "Support Infrastructure", "users": []}),
+        ]
+
+        members = self.api.get_usergroup_members("Support Infrastructure")
+
+        self.assertEqual(members, [])
+        self.assertEqual(mock_get.call_count, 2)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_usergroup_members_group_not_found(self, mock_get):
+        # the search may return groups with a similar name, only an exact match counts
+        mock_get.return_value = _mock_response({"subtotal": 1, "results": [{"id": 8, "name": "Support Infrastructure Old"}]})
+
+        with self.assertRaises(ForemanAPIError) as err:
+            self.api.get_usergroup_members("Support Infrastructure")
+
+        self.assertEqual(err.exception.code, 404)
+        self.assertIn("Support Infrastructure", err.exception.text)
+        self.assertEqual(mock_get.call_count, 1)
+
+    def test_read_only_methods_send_only_get(self):
+        web = MagicMock()
+        # one response that fits every method: a page with one group, its member and an ENC document
+        web.get.return_value = _mock_response({
+            "subtotal": 1,
+            "results": [{"id": 7, "name": "Support Infrastructure"}],
+            "users": [{"id": 4, "login": "jdoe"}],
+            "login": "jdoe",
+            "data": {"parameters": {}}
+        })
+        self.api.web = web
+
+        self.api.get_all_hosts(search="name ~ host", thin=True)
+        self.api.get_common_parameters(search="name ~ hook")
+        self.api.get_host_enc("host.example")
+        self.api.get_usergroup_members("Support Infrastructure")
+
+        requested_urls = [get_call[0][0] for get_call in web.get.call_args_list]
+        self.assertEqual(requested_urls, [
+            "https://foreman.example.com/api/hosts",
+            "https://foreman.example.com/api/common_parameters",
+            "https://foreman.example.com/api/hosts/host.example/enc",
+            "https://foreman.example.com/api/usergroups",
+            "https://foreman.example.com/api/usergroups/7",
+            "https://foreman.example.com/api/users/4",
+        ])
+        web.post.assert_not_called()
+        web.put.assert_not_called()
+        web.patch.assert_not_called()
+        web.delete.assert_not_called()
+        web.request.assert_not_called()
