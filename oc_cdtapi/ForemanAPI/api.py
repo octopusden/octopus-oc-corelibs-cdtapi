@@ -15,6 +15,7 @@ from packaging import version
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
+        # Must never raise: it runs while the error is being logged
         message = self.text
         if self.resp is not None and self.resp.text:
             # Try getting error created by foreman (it should be in json error -> message)
@@ -22,9 +23,10 @@ class ForemanAPIError(HttpAPIError):
                 err_json = json.loads(self.resp.text)
                 message = err_json["error"]["message"]
             
-            # If its not JSON, meaning its from the API itself and we only need to take the reason
-            except ValueError:
-                message = self.resp.reason
+            # Not JSON, or JSON of another shape (e.g. {"error": "Unauthorized"} or []): not a foreman error,
+            # so take the reason, or the text when there is no reason
+            except (ValueError, KeyError, TypeError):
+                message = self.resp.reason or self.text
         return f"Code: {self.code} Message: {message}"
 
 class ForemanAPI(HttpAPI):
@@ -1295,6 +1297,43 @@ class ForemanAPI(HttpAPI):
         data = self.get(posixpath.join("hosts", hostname, "enc")).json()
         # Foreman wraps the ENC document in {"data": {...}}
         return data.get("data", data)
+
+    def get_host_facts(self, hostname, search=None) -> dict:
+        """
+        Returns the facts the host last reported, reading every page of the host's facts
+        Stops at the first empty page, or once 'subtotal' facts are collected.
+        :param hostname: str
+        :param search: str, Foreman search query (optional), e.g. "name = os::family"
+        :return: dict of {fact name: value}
+        """
+        logging.debug('Reached get_host_facts')
+        logging.debug('hostname = [%s]' % hostname)
+        req = posixpath.join("hosts", hostname, "facts")
+        params = {}
+        if search:
+            params["search"] = search
+
+        facts = {}
+        page = 1
+        while True:
+            page_params = dict(params, page=page, per_page=100)
+            response = self.get(req, params=page_params).json()
+            # unlike other lists, 'results' is a dict here: {"<host name>": {"<fact name>": "<value>"}}
+            page_facts = {}
+            for host_facts in (response.get("results") or {}).values():
+                page_facts.update(host_facts or {})
+            if not page_facts:
+                break
+
+            facts.update(page_facts)
+            expected = response.get("subtotal")
+            if isinstance(expected, int) and len(facts) >= expected:
+                break
+
+            page += 1
+
+        logging.debug('Collected [%s] facts of [%s] in [%s] request(s)' % (len(facts), hostname, page))
+        return facts
 
     def get_usergroup_members(self, group_name) -> list:
         """
