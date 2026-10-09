@@ -1236,3 +1236,53 @@ class TestForemanAPI(unittest.TestCase):
         web.patch.assert_not_called()
         web.delete.assert_not_called()
         web.request.assert_not_called()
+
+    def _error_for_body(self, body, reason="Unauthorized", status_code=401):
+        """
+        The ForemanAPIError raised for a response with this body and reason
+        """
+        web = MagicMock()
+        web.get.return_value = _mock_response(None, status_code=status_code)
+        web.get.return_value.text = body
+        web.get.return_value.reason = reason
+        self.api.web = web
+
+        with self.assertRaises(ForemanAPIError) as err:
+            self.api.get_host_enc("host.example")
+
+        return err.exception
+
+    def test_error_str_foreman_message(self):
+        error = self._error_for_body('{"error": {"message": "Unable to authenticate user qa-reader"}}')
+
+        self.assertEqual(str(error), "Code: 401 Message: Unable to authenticate user qa-reader")
+
+    def test_error_str_error_is_text(self):
+        error = self._error_for_body('{"error": "Unauthorized"}')
+
+        self.assertEqual(str(error), "Code: 401 Message: Unauthorized")
+
+    def test_error_str_without_error_key(self):
+        error = self._error_for_body('{"message": "Unauthorized access"}', reason="Forbidden", status_code=403)
+
+        self.assertEqual(str(error), "Code: 403 Message: Forbidden")
+
+    def test_error_str_json_list(self):
+        error = self._error_for_body('[]', reason="Not Found", status_code=404)
+
+        self.assertEqual(str(error), "Code: 404 Message: Not Found")
+
+    def test_error_str_not_json(self):
+        error = self._error_for_body('<html>502 Bad Gateway</html>', reason="Bad Gateway", status_code=502)
+
+        self.assertEqual(str(error), "Code: 502 Message: Bad Gateway")
+
+    def test_error_str_without_reason(self):
+        error = self._error_for_body('{"error": "Unauthorized"}', reason="")
+
+        self.assertEqual(str(error), "Code: 401 Message: Error making request to server")
+
+    def test_error_str_without_response(self):
+        error = ForemanAPIError(500, "https://foreman.example.com/api/status", None, "Connection refused")
+
+        self.assertEqual(str(error), "Code: 500 Message: Connection refused")

@@ -15,6 +15,7 @@ from packaging import version
 
 class ForemanAPIError(HttpAPIError):
     def __str__(self):
+        # Must never raise: it runs while the error is being logged
         message = self.text
         if self.resp is not None and self.resp.text:
             # Try getting error created by foreman (it should be in json error -> message)
@@ -22,9 +23,10 @@ class ForemanAPIError(HttpAPIError):
                 err_json = json.loads(self.resp.text)
                 message = err_json["error"]["message"]
             
-            # If its not JSON, meaning its from the API itself and we only need to take the reason
-            except ValueError:
-                message = self.resp.reason
+            # Not JSON, or JSON of another shape (e.g. {"error": "Unauthorized"} or []): not a foreman error,
+            # so take the reason, or the text when there is no reason
+            except (ValueError, KeyError, TypeError):
+                message = self.resp.reason or self.text
         return f"Code: {self.code} Message: {message}"
 
 class ForemanAPI(HttpAPI):
