@@ -1065,6 +1065,95 @@ class TestForemanAPI(unittest.TestCase):
         self.assertEqual(err.exception.code, 404)
 
     @patch.object(ForemanAPI, 'get')
+    def test_get_host_facts(self, mock_get):
+        search = "name = used_disk_space_percentage or name = used_disk_root_space_percentage"
+        mock_get.return_value = _mock_response({"total": 250, "subtotal": 2, "search": search, "results": {
+            "host.example": {"used_disk_space_percentage": "93", "used_disk_root_space_percentage": "41"}
+        }})
+
+        result = self.api.get_host_facts("host.example", search=search)
+
+        self.assertEqual(result, {"used_disk_space_percentage": "93", "used_disk_root_space_percentage": "41"})
+        mock_get.assert_called_once_with(
+            "hosts/host.example/facts",
+            params={"search": search, "page": 1, "per_page": 100}
+        )
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_facts_reads_every_page(self, mock_get):
+        mock_get.side_effect = [
+            _mock_response({"total": 3, "subtotal": 3, "results": {"host.example": {"fact_1": "1", "fact_2": "2"}}}),
+            _mock_response({"total": 3, "subtotal": 3, "results": {"host.example": {"fact_3": "3"}}}),
+        ]
+
+        result = self.api.get_host_facts("host.example")
+
+        self.assertEqual(result, {"fact_1": "1", "fact_2": "2", "fact_3": "3"})
+        self.assertEqual(mock_get.call_args_list, [
+            call("hosts/host.example/facts", params={"page": 1, "per_page": 100}),
+            call("hosts/host.example/facts", params={"page": 2, "per_page": 100}),
+        ])
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_facts_stops_on_empty_page(self, mock_get):
+        # subtotal promises 300 facts, but the second page is empty
+        mock_get.side_effect = [
+            _mock_response({"subtotal": 300, "results": {"host.example": {"fact_1": "1"}}}),
+            _mock_response({"subtotal": 300, "results": {}}),
+            _mock_response({"subtotal": 300, "results": {"host.example": {"fact_2": "2"}}}),
+        ]
+
+        result = self.api.get_host_facts("host.example")
+
+        self.assertEqual(result, {"fact_1": "1"})
+        self.assertEqual(mock_get.call_count, 2)
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_facts_without_facts(self, mock_get):
+        mock_get.return_value = _mock_response({"results": {}})
+
+        result = self.api.get_host_facts("host.example")
+
+        self.assertEqual(result, {})
+        mock_get.assert_called_once_with("hosts/host.example/facts", params={"page": 1, "per_page": 100})
+
+    @patch.object(ForemanAPI, 'get')
+    def test_get_host_facts_keyed_by_other_name(self, mock_get):
+        # Foreman keys the facts by the host name it knows, which may differ from the name passed (e.g. a certname)
+        mock_get.return_value = _mock_response({"subtotal": 1, "results": {"certname.example": {"fact_1": "1"}}})
+
+        result = self.api.get_host_facts("host.example")
+
+        self.assertEqual(result, {"fact_1": "1"})
+
+    def test_get_host_facts_not_found(self):
+        web = MagicMock()
+        web.get.return_value = _mock_response(None, status_code=404)
+        web.get.return_value.text = '{"error": {"message": "Resource host not found by id \'missing.example\'"}}'
+        self.api.web = web
+
+        with self.assertRaises(ForemanAPIError) as err:
+            self.api.get_host_facts("missing.example")
+
+        self.assertEqual(err.exception.code, 404)
+
+    def test_get_host_facts_sends_only_get(self):
+        web = MagicMock()
+        web.get.return_value = _mock_response({"subtotal": 1, "results": {"host.example": {"fact_1": "1"}}})
+        self.api.web = web
+
+        self.api.get_host_facts("host.example", search="name = fact_1")
+
+        self.assertEqual(web.get.call_count, 1)
+        self.assertEqual(web.get.call_args[0][0], "https://foreman.example.com/api/hosts/host.example/facts")
+        self.assertEqual(web.get.call_args[1]["params"], {"search": "name = fact_1", "page": 1, "per_page": 100})
+        web.post.assert_not_called()
+        web.put.assert_not_called()
+        web.patch.assert_not_called()
+        web.delete.assert_not_called()
+        web.request.assert_not_called()
+
+    @patch.object(ForemanAPI, 'get')
     def test_get_usergroup_members(self, mock_get):
         mock_get.side_effect = [
             _mock_response({"subtotal": 1, "results": [{"id": 7, "name": "Support Infrastructure"}]}),
