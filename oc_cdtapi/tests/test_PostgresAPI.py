@@ -45,6 +45,35 @@ class TestPostgresAPI(unittest.TestCase):
         mock_get.assert_called_once_with('rest/api/1/citypedms/DMS789?bycomponent=True')
 
     @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_citypeincs_by_citype_id(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'ci_type_id': 'CI123',
+            'ci_type_group_id': 'GRP456'
+        }
+        mock_get.return_value = mock_response
+
+        result = self.api.get_citypeincs_by_citype_id('CI123')
+
+        self.assertEqual(result['ci_type_group_id'], 'GRP456')
+        mock_get.assert_called_once_with('rest/api/1/citype_incs/CI123', params={'schema': 'dl_schema'})
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_citypeincs_by_citype_id_cnt_schema(self, mock_get):
+        mock_get.return_value = MagicMock()
+
+        self.api.get_citypeincs_by_citype_id('CI123', schema='cnt_schema')
+
+        mock_get.assert_called_once_with('rest/api/1/citype_incs/CI123', params={'schema': 'cnt_schema'})
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
+    def test_get_citypeincs_by_citype_id_not_found(self, mock_get):
+        mock_get.side_effect = HttpAPIError(code=404, url="rest/api/1/citype_incs/CI123")
+
+        with self.assertRaises(HttpAPIError):
+            self.api.get_citypeincs_by_citype_id('CI123')
+
+    @patch('oc_cdtapi.PgAPI.PostgresAPI.get')
     def test_get_deliveries(self, mock_get):
         mock_response = MagicMock()
         mock_response.json.return_value = [

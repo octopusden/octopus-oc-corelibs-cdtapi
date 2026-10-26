@@ -95,6 +95,36 @@ class PostgresAPI(API.HttpAPI):
 
         return res.json()
 
+    def get_citypeincs_by_citype_id(self, citype, schema="dl_schema"):
+        """
+        Retrieve the CI type group inclusion for a given CI type ID.
+
+        This method fetches the citypeincs entry linking the specified CI type
+        to its CI type group.
+
+        Args:
+            citype (str): The CI type ID to query.
+            schema (str): Schema to search in, ``dl_schema`` (default) or ``cnt_schema``.
+
+        Returns:
+            dict: A dictionary containing citypeincs information with the following keys:
+                - ci_type_id: The CI type ID
+                - ci_type_group_id: The CI type group ID
+
+        Raises:
+            HttpAPIError: With code 404 if the CI type is in no group.
+
+        Example:
+            >>> citypeincs = api.get_citypeincs_by_citype_id("CI123")
+            >>> print(citypeincs['ci_type_group_id'])
+            'GRP456'
+        """
+        req = f"rest/api/1/citype_incs/{citype}"
+        res = self.get(req, params={'schema': schema})
+        logging.debug(f'Using get_citypeincs_by_citype_id to get information about {citype}')
+
+        return res.json()
+
     def get_ci_type_by_code(self, request):
         """
         Retrieve a list of ci type based on the provided ci type code.
